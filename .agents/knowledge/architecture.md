@@ -204,3 +204,22 @@ Distributed tests (`tests/parallel/`, `tests/e2e/`) may require multiple GPUs an
 | Omni | `tasks/omni/train_omni_model.py` | Custom |
 | Inference (text) | `tasks/infer/infer_text.py` | N/A |
 | Inference (VLM) | `tasks/infer/infer_qwen2_vl.py` | N/A |
+
+## PlaceMoE runtime organization
+
+`placemoe/planner.py` is the stable CLI and report entry point. Arguments and search
+budgets live in `planner_config.py`, deterministic candidate construction in
+`planner_candidates.py`, and per-layer orchestration in `planner_search.py`.
+
+`veomni/distributed/moe/hiermoe/expert_swap.py` composes runtime mixins for artifact
+loading, routing, calibration, hot updates, migration, gradients, checkpointing,
+and the existing initialization pipeline. `runtime_settings.py` owns mutable
+configuration. `runtime_types.py` defines shared records; `runtime_tensors.py`
+contains tensor/optimizer-state primitives. `traffic.py` supplies shared exact
+counts and route replay costs, independently of candidate search.
+
+Historical batched, layer-owner, CPU-process, forward-cover, online-LUT and
+exact-pair experimental selectors have been retired. Preserve currently used
+initialization/calibration planners and all communication/gradient windows.
+See `docs/design/placemoe_refactor_20260921.md` for the full file map, CPU test
+coverage, reference replay and accelerator-validation limits.

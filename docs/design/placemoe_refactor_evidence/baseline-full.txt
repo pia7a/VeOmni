@@ -1,0 +1,148 @@
+
+==================================== ERRORS ====================================
+________ ERROR collecting tests/checkpoints/test_checkpoint_callback.py ________
+ImportError while importing test module '/review/baseline/tests/checkpoints/test_checkpoint_callback.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/python3.11.15/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/checkpoints/test_checkpoint_callback.py:13: in <module>
+    from veomni.trainer.callbacks.base import TrainerState
+veomni/__init__.py:15: in <module>
+    from .ops import apply_ops_config, apply_ops_patch, format_kernel_functions
+veomni/ops/__init__.py:24: in <module>
+    from . import kernels, liger  # noqa: F401  triggers all register_op() calls
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+veomni/ops/kernels/__init__.py:23: in <module>
+    from . import (  # noqa: F401
+veomni/ops/kernels/moe/__init__.py:131: in <module>
+    from ....distributed.moe.hiermoe import get_hiermoe_expert_layer_key, get_hiermoe_expert_layer_key_from_params
+veomni/distributed/moe/__init__.py:16: in <module>
+    from .moe_layer import (
+veomni/distributed/moe/moe_layer.py:28: in <module>
+    from ...ops.kernels.moe._kernels.kernel.group_gemm import group_gemm_same_mn, group_gemm_same_nk
+veomni/ops/kernels/moe/_kernels/kernel/group_gemm.py:18: in <module>
+    import triton
+E   ModuleNotFoundError: No module named 'triton'
+_________ ERROR collecting tests/checkpoints/test_dcp_checkpointer.py __________
+ImportError while importing test module '/review/baseline/tests/checkpoints/test_dcp_checkpointer.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/python3.11.15/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/checkpoints/test_dcp_checkpointer.py:18: in <module>
+    from veomni.distributed import torch_parallelize
+veomni/distributed/torch_parallelize.py:29: in <module>
+    from ..arguments import MixedPrecisionConfig
+veomni/__init__.py:15: in <module>
+    from .ops import apply_ops_config, apply_ops_patch, format_kernel_functions
+veomni/ops/__init__.py:24: in <module>
+    from . import kernels, liger  # noqa: F401  triggers all register_op() calls
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+veomni/ops/kernels/__init__.py:23: in <module>
+    from . import (  # noqa: F401
+veomni/ops/kernels/moe/__init__.py:131: in <module>
+    from ....distributed.moe.hiermoe import get_hiermoe_expert_layer_key, get_hiermoe_expert_layer_key_from_params
+veomni/distributed/moe/__init__.py:16: in <module>
+    from .moe_layer import (
+veomni/distributed/moe/moe_layer.py:28: in <module>
+    from ...ops.kernels.moe._kernels.kernel.group_gemm import group_gemm_same_mn, group_gemm_same_nk
+veomni/ops/kernels/moe/_kernels/kernel/group_gemm.py:18: in <module>
+    import triton
+E   ModuleNotFoundError: No module named 'triton'
+_________ ERROR collecting tests/checkpoints/test_trainer_saveload.py __________
+ImportError while importing test module '/review/baseline/tests/checkpoints/test_trainer_saveload.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+tests/checkpoints/test_trainer_saveload.py:14: in <module>
+    from .utils import (
+tests/checkpoints/utils.py:10: in <module>
+    from tools import hf_local_or_remote, resolve_ops_overrides
+tests/tools/__init__.py:8: in <module>
+    from .data_generators import DummyDataset
+tests/tools/data_generators.py:10: in <module>
+    from veomni.data.dummy_dataset import build_dummy_dataset
+veomni/__init__.py:15: in <module>
+    from .ops import apply_ops_config, apply_ops_patch, format_kernel_functions
+veomni/ops/__init__.py:24: in <module>
+    from . import kernels, liger  # noqa: F401  triggers all register_op() calls
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+veomni/ops/kernels/__init__.py:23: in <module>
+    from . import (  # noqa: F401
+veomni/ops/kernels/moe/__init__.py:131: in <module>
+    from ....distributed.moe.hiermoe import get_hiermoe_expert_layer_key, get_hiermoe_expert_layer_key_from_params
+veomni/distributed/moe/__init__.py:16: in <module>
+    from .moe_layer import (
+veomni/distributed/moe/moe_layer.py:28: in <module>
+    from ...ops.kernels.moe._kernels.kernel.group_gemm import group_gemm_same_mn, group_gemm_same_nk
+veomni/ops/kernels/moe/_kernels/kernel/group_gemm.py:18: in <module>
+    import triton
+E   ModuleNotFoundError: No module named 'triton'
+
+During handling of the above exception, another exception occurred:
+/usr/local/python3.11.15/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/checkpoints/test_trainer_saveload.py:22: in <module>
+    from checkpoint_verification_utils import verify_dcp_to_hf_conversion
+E   ModuleNotFoundError: No module named 'checkpoint_verification_utils'
+_____ ERROR collecting tests/data/multimodal/test_qwen3_omni_offline_av.py _____
+ImportError while importing test module '/review/baseline/tests/data/multimodal/test_qwen3_omni_offline_av.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/python3.11.15/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/data/multimodal/test_qwen3_omni_offline_av.py:44: in <module>
+    from veomni.data.multimodal.preprocess import conv_preprocess
+veomni/__init__.py:15: in <module>
+    from .ops import apply_ops_config, apply_ops_patch, format_kernel_functions
+veomni/ops/__init__.py:24: in <module>
+    from . import kernels, liger  # noqa: F401  triggers all register_op() calls
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+veomni/ops/kernels/__init__.py:23: in <module>
+    from . import (  # noqa: F401
+veomni/ops/kernels/moe/__init__.py:131: in <module>
+    from ....distributed.moe.hiermoe import get_hiermoe_expert_layer_key, get_hiermoe_expert_layer_key_from_params
+veomni/distributed/moe/__init__.py:16: in <module>
+    from .moe_layer import (
+veomni/distributed/moe/moe_layer.py:28: in <module>
+    from ...ops.kernels.moe._kernels.kernel.group_gemm import group_gemm_same_mn, group_gemm_same_nk
+veomni/ops/kernels/moe/_kernels/kernel/group_gemm.py:18: in <module>
+    import triton
+E   ModuleNotFoundError: No module named 'triton'
+__________ ERROR collecting tests/data/multimodal/test_video_utils.py __________
+ImportError while importing test module '/review/baseline/tests/data/multimodal/test_video_utils.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/python3.11.15/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/data/multimodal/test_video_utils.py:11: in <module>
+    from veomni.data.multimodal.video_utils import (
+veomni/__init__.py:15: in <module>
+    from .ops import apply_ops_config, apply_ops_patch, format_kernel_functions
+veomni/ops/__init__.py:24: in <module>
+    from . import kernels, liger  # noqa: F401  triggers all register_op() calls
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+veomni/ops/kernels/__init__.py:23: in <module>
+    from . import (  # noqa: F401
+veomni/ops/kernels/moe/__init__.py:131: in <module>
+    from ....distributed.moe.hiermoe import get_hiermoe_expert_layer_key, get_hiermoe_expert_layer_key_from_params
+veomni/distributed/moe/__init__.py:16: in <module>
+    from .moe_layer import (
+veomni/distributed/moe/moe_layer.py:28: in <module>
+    from ...ops.kernels.moe._kernels.kernel.group_gemm import group_gemm_same_mn, group_gemm_same_nk
+veomni/ops/kernels/moe/_kernels/kernel/group_gemm.py:18: in <module>
+    import triton
+E   ModuleNotFoundError: No module named 'triton'
+=========================== short test summary info ============================
+ERROR tests/checkpoints/test_checkpoint_callback.py
+ERROR tests/checkpoints/test_dcp_checkpointer.py
+ERROR tests/checkpoints/test_trainer_saveload.py
+ERROR tests/data/multimodal/test_qwen3_omni_offline_av.py
+ERROR tests/data/multimodal/test_video_utils.py
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 5 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+5 errors in 11.90s

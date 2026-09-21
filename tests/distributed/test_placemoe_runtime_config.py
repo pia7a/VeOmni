@@ -719,3 +719,9 @@ placemoe:
 
     with pytest.raises(PlaceMoEConfigurationError, match="must be configured together"):
         PlaceMoERuntimeConfig.from_file(config_path)
+
+
+@pytest.mark.parametrize("selector", ["legacy_batched", "hiermoe_exact_p1"])
+def test_retired_selector_is_rejected_by_training_config(selector):
+    with pytest.raises(ValueError, match="expert_swap_selector"):
+        HierMoEConfig(expert_swap_selector=selector)

@@ -23,9 +23,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from ..greedy_planner import GreedyCommunicationPlanner
-from ..perf_model import HierMoEPerfModel
 from ..topology import Hierarchy, expected_hierarchy_group_sizes
+from ..traffic import RouteCostModel
 
 
 @dataclass(frozen=True)
@@ -137,9 +136,8 @@ class HybridEvaluator:
                 float(args.inter_ms_per_byte),
                 float(args.intra_ms_per_byte),
             )
-        self.planner = GreedyCommunicationPlanner(
+        self.planner = RouteCostModel(
             hierarchy=hierarchy,
-            perf_model=HierMoEPerfModel.default(),
             hidden_size=args.hidden_size,
             bytes_per_element=args.bytes_per_element,
             slots_per_rank=args.slots_per_rank,

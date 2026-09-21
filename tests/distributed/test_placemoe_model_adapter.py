@@ -19,7 +19,8 @@ import torch
 from torch import nn
 
 from placemoe import register_moe_model_adapter, resolve_moe_model_adapter
-from veomni.distributed.moe.hiermoe import expert_swap as expert_swap_module
+from veomni.distributed.moe.hiermoe import runtime_calibration
+from veomni.distributed.moe.hiermoe import runtime_settings as expert_swap_module
 from veomni.distributed.moe.hiermoe.expert_swap import ExpertSwapManager, expand_redundant_expert_slots
 from veomni.distributed.moe.hiermoe.perf_model import HierMoEPerfModel
 from veomni.distributed.moe.hiermoe.topology import Hierarchy
@@ -289,7 +290,7 @@ def test_rank_only_cost_model_collects_direct_a2a_observations(monkeypatch) -> N
     monkeypatch.setattr(expert_swap_module, "_COST_MODEL_VERIFY", True)
     monkeypatch.setattr(expert_swap_module, "_FORWARD_REUSE_COVER", False)
     monkeypatch.setattr(expert_swap_module, "_ONLINE_FREEZE_COST_MODE", "off")
-    monkeypatch.setattr(expert_swap_module, "synchronize", lambda: None)
+    monkeypatch.setattr(runtime_calibration, "synchronize", lambda: None)
     manager = ExpertSwapManager(
         ep_group=None,
         ep_size=1,

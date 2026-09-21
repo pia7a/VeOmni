@@ -1,0 +1,36 @@
+{
+  "baseline_commit": "c1b9945a8ed67093fa186125546c93c38a662151",
+  "snapshot": {
+    "ep_size": 16,
+    "experts": 128,
+    "tokens": 260270,
+    "top_k": 8
+  },
+  "snapshot_sha256": "bb588b7c8aeba46bbb2f88f92f4cd73eeff2b822311022b0fbdeeaa2b025de1c",
+  "reference_sha256": "cb72eae2db0bc946289aa1988f179146dd1b45b62dbbc0e98f6f65f1b9bedd25",
+  "after_sha256": "cb72eae2db0bc946289aa1988f179146dd1b45b62dbbc0e98f6f65f1b9bedd25",
+  "exact_json_equal": true,
+  "traffic_cases": 6,
+  "count_arrays_compared": 192,
+  "optimizer_candidates_compared": 6,
+  "tests_before": {
+    "passed": 142,
+    "skipped": 2,
+    "failed": 2
+  },
+  "tests_after": {
+    "passed": 150,
+    "skipped": 2,
+    "failed": 2
+  },
+  "new_retired_option_tests": 8,
+  "hardware_validation": false,
+  "python_lines": {
+    "before": 45893,
+    "after": 37728,
+    "removed": 8165,
+    "expert_swap_before": 12371,
+    "expert_swap_after": 931
+  },
+  "review": "safe; independent structural/import review"
+}

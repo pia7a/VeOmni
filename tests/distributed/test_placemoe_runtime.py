@@ -23,8 +23,10 @@ import pytest
 import torch
 
 from placemoe import planner as placemoe_planner
+from placemoe import planner_config
 from veomni.distributed.moe.hiermoe import all_to_all as all_to_all_module
-from veomni.distributed.moe.hiermoe import expert_swap as expert_swap_module
+from veomni.distributed.moe.hiermoe import runtime_hot_update
+from veomni.distributed.moe.hiermoe import runtime_settings as expert_swap_module
 from veomni.distributed.moe.hiermoe.expert_swap import ExpertSwapManager
 from veomni.distributed.moe.hiermoe.placemoe import (
     LayerPlan,
@@ -82,7 +84,7 @@ def test_planner_uses_only_intra_node_cost_for_single_node_hierarchy():
         compute_ms_per_assignment=5.0,
     )
 
-    hierarchy, omegas, gamma = placemoe_planner._hierarchy_coefficients(args)
+    hierarchy, omegas, gamma = planner_config._hierarchy_coefficients(args)
 
     assert hierarchy == (4,)
     assert omegas == (96.0,)
@@ -94,7 +96,7 @@ def test_fast_approx_uses_compact_defaults_for_unspecified_dimensions():
         fast_approx=True,
     )
 
-    placemoe_planner._configure_search(args)
+    planner_config._configure_search(args)
 
     assert args.search_budget["mode"] == "fast_approx"
     assert args.search_budget["effective"] == {
@@ -128,7 +130,7 @@ def test_fast_approx_preserves_explicit_search_budget():
         community_sweeps=3,
     )
 
-    placemoe_planner._configure_search(args)
+    planner_config._configure_search(args)
 
     assert args.search_budget["effective"] == {
         "replica_candidate_limit": 3,
@@ -153,7 +155,7 @@ def test_full_search_preserves_requested_budget():
         assignment_iterations=8,
     )
 
-    placemoe_planner._configure_search(args)
+    planner_config._configure_search(args)
 
     assert args.search_budget["mode"] == "full"
     assert args.search_budget["effective"] == args.search_budget["requested"]
@@ -177,7 +179,7 @@ def test_mapping_search_budget_reports_only_the_lut_search():
         assignment_iterations=12,
     )
 
-    placemoe_planner._configure_search(args)
+    planner_config._configure_search(args)
 
     assert args.search_budget["update_mode"] == "mapping"
     assert args.search_budget["requested"] == {"lut_iterations": 6}
@@ -510,7 +512,7 @@ def test_hot_update_passes_calibration_coefficients_to_planner(monkeypatch, tmp_
         def __init__(self, command, **_kwargs):
             commands.append(command)
 
-    monkeypatch.setattr(expert_swap_module.subprocess, "Popen", _Process)
+    monkeypatch.setattr(runtime_hot_update.subprocess, "Popen", _Process)
 
     manager._launch_hot_update(
         placement_step=9,
@@ -558,7 +560,7 @@ def test_canonical_hot_update_keeps_current_pair_when_planner_fails(monkeypatch)
     manager._hot_update_status = lambda _state, _device: 2
     manager._hot_update_event = lambda *_args, **_kwargs: None
     terminated = []
-    monkeypatch.setattr(expert_swap_module, "terminate_planner_process", terminated.append)
+    monkeypatch.setattr(runtime_hot_update, "terminate_planner_process", terminated.append)
 
     result = manager._run_hot_update_step(20)
 
@@ -592,3 +594,32 @@ def test_hot_update_validates_all_layers_before_migration() -> None:
 
     assert prepared == [manager.layers["layer.0"], manager.layers["layer.1"]]
     assert installed == []
+
+
+@pytest.mark.parametrize(
+    "selector,flag,value",
+    [
+        ("legacy_batched", "_NPU_LAYER_OWNER_BLOCKING", False),
+        ("hiermoe_exact_p1", "_NPU_LAYER_OWNER_BLOCKING", False),
+        ("current_joint", "_NPU_LAYER_OWNER_BLOCKING", True),
+        ("current_joint", "_FORWARD_REUSE_COVER", True),
+        ("current_joint", "_ONLINE_LUT_UPDATE", True),
+        ("current_joint", "_CPU_PLANNER_MODE", "blocking"),
+    ],
+)
+def test_retired_selectors_fail_before_constructing_runtime_resources(monkeypatch, selector, flag, value):
+    monkeypatch.setattr(expert_swap_module, flag, value)
+    with pytest.raises(ValueError, match="removed"):
+        ExpertSwapManager(
+            ep_group=None,
+            ep_size=1,
+            ep_rank=0,
+            expert_swap_interval=1,
+            expert_swap_max_pairs_per_layer=0,
+            redundant_slot_increment_per_device=0,
+            max_replica_rounds=0,
+            smooth_max_gamma=10.0,
+            hierarchy=None,
+            perf_model=None,
+            expert_swap_selector=selector,
+        )
