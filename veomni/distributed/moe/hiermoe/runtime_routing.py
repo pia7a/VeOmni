@@ -203,15 +203,10 @@ class RoutingMixin:
             target_layout = torch.full((layer.num_physical_slots,), -1, dtype=torch.long)
             target_layout[first_slots] = logical
             target_layout[second_slots] = logical
-            source_route_lut = first_slots.view(1, -1).expand(self.ep_size, -1).clone()
-            source_route_lut[half_ep:] = second_slots
 
             current_layout = layer.slot_to_logical.detach().cpu()
             if torch.equal(current_layout, target_layout):
                 self._refresh_layer_mapping_from_slots(layer, tuple(int(slot) for slot in first_slots.tolist()))
-                if self._forward_reuse_cover_patch_remap:
-                    layer.source_logical_to_physical = source_route_lut
-                    layer._device_source_mapping_cache.clear()
                 layer.fixed_r2_layout = True
                 continue
 
@@ -251,9 +246,6 @@ class RoutingMixin:
             layer.active_quota_policy = ()
             layer.pending_physical_routes = None
             layer.pending_route_data_ptr = 0
-            if self._forward_reuse_cover_patch_remap:
-                layer.source_logical_to_physical = source_route_lut
-                layer._device_source_mapping_cache.clear()
             layer.fixed_r2_layout = True
 
         logger.info_rank0("HierMoE installed the fixed R2 layout for %s layer(s).", len(self.layers))
@@ -333,7 +325,7 @@ class RoutingMixin:
             canonical_physical_slots=canonical_slots,
             is_identity=bool(is_identity),
         )
-        if self._hot_update or (self._forward_reuse_cover_patch_remap and slot_layout_enabled):
+        if self._hot_update:
             if previous_source_lut is not None and tuple(previous_source_lut.shape) == (self.ep_size, num_experts):
                 registered_layer.source_logical_to_physical = previous_source_lut.detach().cpu().clone()
             else:
@@ -572,22 +564,15 @@ class RoutingMixin:
         if (
             self.fixed_pipeline_overlap
             and self._ablation_replay_mode == "off"
-            and not self._npu_layer_owner_blocking
             and self._online_freeze_cost_mode == "off"
-            and not self._forward_reuse_cover
             and step is not None
         ):
-            if self._cpu_planner_mode == "background":
-                self._submit_cpu_batched_plan(int(step))
-            elif self._cpu_planner_mode == "process_background":
-                self._submit_cpu_process_plan(int(step), background=True)
-            elif self._cpu_planner_mode == "off":
-                self._submit_pipeline_plan(layer, selected_experts, int(step))
+            self._submit_pipeline_plan(layer, selected_experts, int(step))
 
     def record_forward_physical_routes(self, layer_key: str, physical_routes: torch.Tensor) -> None:
         """Keep the physical routes already consumed by the trainable Forward."""
 
-        if not self._forward_reuse_cover and not self._cost_model_verify and self._online_freeze_cost_mode == "off":
+        if not self._cost_model_verify and self._online_freeze_cost_mode == "off":
             return
         layer = self.layers.get(layer_key)
         if layer is not None:

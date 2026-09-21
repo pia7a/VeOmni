@@ -223,3 +223,11 @@ exact-pair experimental selectors have been retired. Preserve currently used
 initialization/calibration planners and all communication/gradient windows.
 See `docs/design/placemoe_refactor_20260921.md` for the full file map, CPU test
 coverage, reference replay and accelerator-validation limits.
+
+The second cleanup removes unreachable retired-mode dispatch and task records,
+unused scorer/gradient/optimizer helper closures, and the retired Forward-only
+statistics hook. Historical metric keys are captured in one construction-time
+`_retired_planner_metrics` snapshot, rather than loose manager attributes.
+Community candidates require their existing initial mapping. See
+`docs/design/placemoe_cleanup_20260922.md` for the current complete file table,
+38 cross-revision CPU scenarios, profile parity, and remaining hardware limits.

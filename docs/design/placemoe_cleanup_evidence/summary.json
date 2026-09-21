@@ -1,0 +1,68 @@
+{
+  "baseline_commit": "880818ae30a19034db18dacbd3f8bf853ef15197",
+  "source_lines": {
+    "before": 37728,
+    "after": 35439,
+    "removed": 2289,
+    "hiermoe_after": 32960,
+    "placemoe_after": 2479
+  },
+  "tests": {
+    "command": "pytest -q tests/distributed/test_placemoe*.py",
+    "before": {
+      "passed": 168,
+      "skipped": 2,
+      "failed": 3
+    },
+    "after": {
+      "passed": 169,
+      "skipped": 2,
+      "failed": 2
+    },
+    "fixed": "test_rank_only_replication_keeps_gradient_overlap_without_fixed_pipeline: patch actual factory owner",
+    "remaining_failures": [
+      "test_prepare_reuses_valid_artifacts_without_running_calibrators",
+      "test_prepare_generates_missing_runtime_and_model_artifacts"
+    ]
+  },
+  "planning_scenarios": 38,
+  "planning_reference_sha256": "3934f3505a4ad41964d513a2795a70837ea9b17ed6becff5514dacc6781b700a",
+  "full_profile_reference_sha256": "cb72eae2db0bc946289aa1988f179146dd1b45b62dbbc0e98f6f65f1b9bedd25",
+  "algorithm_ast_unchanged_functions": 187,
+  "review": "safe",
+  "limitations": [
+    "CPU test bootstrap bypasses unrelated accelerator package registration",
+    "CoRe scenario uses synthetic gather callback",
+    "No multi-NPU communication ordering, stream, gradient synchronization or performance verification"
+  ],
+  "quality": {
+    "ruff_lint": "passed",
+    "global_formatting": "same 24 pre-existing files",
+    "formatting_files": [
+      "docs/design/patchgen.md",
+      "docs/design/unified_kernel_registry.md",
+      "docs/design/verl_topk_distill_integration.md",
+      "docs/examples/qwen3.md",
+      "docs/examples/qwen3_5.md",
+      "docs/examples/qwen3_omni_moe.md",
+      "docs/examples/qwen3_vl.md",
+      "docs/hardware_support/precision_analysis.md",
+      "docs/hardware_support/typical_usage.md",
+      "docs/key_features/ep_fsdp2.md",
+      "docs/key_features/extra_parallel.md",
+      "docs/key_features/model_loader.md",
+      "docs/key_features/preprocessor_registry.md",
+      "docs/key_features/ulysses.md",
+      "docs/transformers_v5/testing_new_model.md",
+      "docs/transformers_v5/veomni_fused_attention.md",
+      "docs/usage/basic_modules.md",
+      "docs/usage/support_new_models/dit_model_guide.md",
+      "docs/usage/support_new_models/guide_and_checklist.md",
+      "docs/usage/support_new_models/guide_and_checklist_zh.md",
+      "docs/usage/support_new_models/qwen3_omni_moe_example.md",
+      "docs/usage/support_new_models/qwen3_vl_example.md",
+      "docs/usage/trainer.md",
+      "tests/parallel/ulysses/test_ulysses.py"
+    ]
+  }
+}

@@ -113,12 +113,9 @@ class ExpertLayerState:
     canonical_physical_slots: torch.Tensor | None = None
     latest_selected_experts: torch.Tensor | None = None
     latest_physical_routes: torch.Tensor | None = None
-    latest_forward_baseline_communication_counts: torch.Tensor | None = None
-    latest_forward_traffic_endpoint_statistics: torch.Tensor | None = None
     latest_route_step: int = -1
     last_planned_step: int = -1
     accumulated_tokens_per_local_expert: torch.Tensor | None = None
-    latest_tokens_per_local_expert: torch.Tensor | None = None
     latest_hidden_size: int = 0
     latest_bytes_per_element: int = 0
     is_identity: bool = True
@@ -278,17 +275,6 @@ class _CoverTensorEntry:
 
 
 @dataclass(frozen=True)
-class _SlotOpCandidate:
-    kind: str
-    src_slot: int
-    dst_slot: int
-
-    def format(self) -> str:
-        arrow = "<->" if self.kind == "swap" else "->"
-        return f"{self.kind.upper()}({self.src_slot}{arrow}{self.dst_slot})"
-
-
-@dataclass(frozen=True)
 class _LayerSwapPlan:
     layer_key: str
     logical_lhs: int
@@ -409,38 +395,6 @@ class _PipelineGradResult:
 
 
 @dataclass(frozen=True)
-class _CPUBatchedPlanResult:
-    source_step: int
-    placement_versions: tuple[int, ...]
-    plans: tuple[PlacementPlan, ...]
-    route_copy_ms: float
-    active_ms: float
-    latency_ms: float
-    timing: Any
-
-
-@dataclass
-class _CPUBatchedPlanState:
-    source_step: int
-    placement_versions: tuple[int, ...]
-    submitted_at: float
-    background: bool
-    collective_ready: Event = field(default_factory=Event)
-    collective_gate: Event = field(default_factory=Event)
-    collective_enqueued: Event = field(default_factory=Event)
-    collective_done_event: AcceleratorEvent | None = None
-    collective_error: BaseException | None = None
-    collective_gate_wait_ms: float = 0.0
-    collective_ready_host_wait_ms: float = 0.0
-    collective_close_host_wait_ms: float = 0.0
-    process_slot: int = -1
-    route_share_ms: float = 0.0
-    process_collective_active_ms: float = 0.0
-    process_collective_future: Future[Any] | None = None
-    future: Future[_CPUBatchedPlanResult] | None = None
-
-
-@dataclass(frozen=True)
 class _PendingPipelinePlan:
     plan: PlacementPlan
     source_step: int
@@ -483,23 +437,6 @@ class _PipelinePlannerWindows:
 class _OptimizerParamBinding:
     optimizer: Any
     group: dict[str, Any]
-
-
-@dataclass(frozen=True)
-class _RedundantGradBucketItem:
-    local_grad: torch.Tensor
-    local_slots: tuple[int, ...]
-    shape: torch.Size
-    numel: int
-
-
-@dataclass
-class _RedundantGradBucket:
-    owner_rank: int
-    copy_ranks: tuple[int, ...]
-    items: tuple[_RedundantGradBucketItem, ...]
-    send_buffer: torch.Tensor
-    accum_buffer: torch.Tensor | None = None
 
 
 @dataclass(frozen=True)

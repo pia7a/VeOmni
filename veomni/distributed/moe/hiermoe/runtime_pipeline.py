@@ -49,7 +49,6 @@ class PipelineMixin:
         return (
             self._hot_update
             or self._cost_model_verify
-            or self._online_lut_update
             or (
                 not self._initial_layout_path
                 and self._ablation_replay_mode != "static"
@@ -141,9 +140,7 @@ class PipelineMixin:
             self._pipeline_next_grad_index = 0
         if not self.fixed_pipeline_overlap:
             return
-        if self._uses_cpu_process_planner():
-            self._ensure_cpu_process_runtime()
-        if self._ablation_replay_mode == "off" and not self._npu_layer_owner_blocking:
+        if self._ablation_replay_mode == "off":
             self._ensure_pipeline_plan_worker_capacity()
         if self._ablation_migration_mode == "hidden":
             self._launch_next_pipeline_migration()
@@ -297,9 +294,6 @@ class PipelineMixin:
         self._hot_update_controller.finish()
         with self._pipeline_lock:
             windows = tuple(self._pipeline_planner_windows.values())
-            cpu_state = self._cpu_batch_state
-        if cpu_state is not None:
-            cpu_state.collective_gate.set()
         for window in windows:
             for gate in window.prepare_gates:
                 gate.set()
@@ -316,11 +310,6 @@ class PipelineMixin:
             future.result()
         for future in tuple(self._pipeline_grad_futures.values()):
             future.result()
-        if cpu_state is not None and cpu_state.future is not None:
-            cpu_state.future.result()
-        if self._cpu_process_runtime is not None:
-            self._cpu_process_runtime.close()
-            self._cpu_process_runtime = None
         for handle in self._pipeline_grad_hook_handles:
             handle.remove()
         for executor in (
@@ -328,7 +317,6 @@ class PipelineMixin:
             self._pipeline_collective_executor,
             self._pipeline_migration_executor,
             self._pipeline_grad_executor,
-            self._cpu_plan_executor,
         ):
             if executor is not None:
                 executor.shutdown(wait=True, cancel_futures=False)

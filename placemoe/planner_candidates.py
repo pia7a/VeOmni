@@ -21,7 +21,6 @@ from veomni.distributed.moe.hiermoe.placemoe import (
     PlaceMoETopology,
     ProfileStatistics,
     build_replica_allocations,
-    initialize_mapping,
     materialize_plan,
     optimize_mapping,
     optimize_replica_allocation,
@@ -224,60 +223,6 @@ def _group_route_statistics(
     return assignments_by_group, group_mask_histogram
 
 
-def _node_proxy_lut(
-    samples: list[list[torch.Tensor]],
-    logical_instances: np.ndarray,
-    instance_nodes: np.ndarray,
-    demand_by_source: np.ndarray,
-    affinity_by_source: np.ndarray,
-    *,
-    ranks_per_node: int,
-    iterations: int = 4,
-) -> tuple[np.ndarray, float]:
-    ep_size, num_experts = demand_by_source.shape
-    choices = [np.flatnonzero(logical_instances == expert) for expert in range(num_experts)]
-    lut = np.full((ep_size, num_experts), -1, dtype=np.int64)
-    for source_rank in range(ep_size):
-        source_node = source_rank // ranks_per_node
-        for expert in range(num_experts):
-            local = choices[expert][instance_nodes[choices[expert]] == source_node]
-            lut[source_rank, expert] = int(local[0] if len(local) else choices[expert][0])
-    for _ in range(iterations):
-        changed = False
-        for source_rank in range(ep_size):
-            selected_nodes = instance_nodes[lut[source_rank]]
-            source_node = source_rank // ranks_per_node
-            for expert in np.argsort(-demand_by_source[source_rank], kind="stable").tolist():
-                affinity_row = affinity_by_source[source_rank, expert]
-                best: tuple[float, int] | None = None
-                for instance in choices[expert].tolist():
-                    node = int(instance_nodes[instance])
-                    reward = float(affinity_row[selected_nodes == node].sum())
-                    if node == source_node:
-                        reward += float(demand_by_source[source_rank, expert])
-                    key = (reward, -node, -instance)
-                    if best is None or key > (best[0], -int(instance_nodes[best[1]]), -best[1]):
-                        best = (reward, instance)
-                if best is not None and best[1] != int(lut[source_rank, expert]):
-                    lut[source_rank, expert] = best[1]
-                    selected_nodes[expert] = instance_nodes[best[1]]
-                    changed = True
-        if not changed:
-            break
-
-    score = 0.0
-    torch_lut = torch.from_numpy(lut).to(torch.long)
-    torch_nodes = torch.from_numpy(instance_nodes).to(torch.long)
-    for sample in samples:
-        for source_rank, logical in enumerate(sample):
-            mapped = torch_lut[source_rank].index_select(0, logical.reshape(-1)).view_as(logical)
-            nodes = torch_nodes.index_select(0, mapped.reshape(-1)).view_as(mapped)
-            hits = torch.zeros((logical.shape[0], ep_size // ranks_per_node), dtype=torch.bool)
-            hits.scatter_(1, nodes, True)
-            score += float(hits.sum().item())
-    return lut, score
-
-
 def _mapped_instance_statistics(
     samples: list[list[torch.Tensor]],
     lut_instances: np.ndarray,
@@ -320,25 +265,6 @@ def _greedy_ranks_with_fixed_nodes(
             rank_omega=0.0,
             gamma=0.0,
         ),
-    )
-
-
-def _initial_lut_instances(
-    logical_instances: np.ndarray,
-    instance_ranks: np.ndarray,
-    demand_by_source: np.ndarray,
-    *,
-    ranks_per_node: int,
-    prefer_local: bool = True,
-    hierarchy_group_sizes: tuple[int, ...] = (),
-) -> np.ndarray:
-    return initialize_mapping(
-        logical_instances,
-        instance_ranks,
-        demand_by_source,
-        ranks_per_node=ranks_per_node,
-        prefer_node_local=prefer_local,
-        hierarchy_group_sizes=hierarchy_group_sizes,
     )
 
 
@@ -509,10 +435,8 @@ def _build_candidate(
     strategy: str,
     fixed_instance_nodes: np.ndarray | None = None,
     fixed_initial_lut: np.ndarray | None = None,
-    initial_instance_statistics: tuple[np.ndarray, np.ndarray] | None = None,
     cost_cache: dict[bytes, HybridCost] | None = None,
     calibrated_partition_refinement: bool = True,
-    refine_fixed_initial_lut: bool = False,
 ) -> _Candidate | None:
     started = time.perf_counter()
     if fixed_instance_nodes is None:
@@ -530,25 +454,13 @@ def _build_candidate(
             calibrated_partition_refinement=calibrated_partition_refinement,
         )
     communication_blind = bool(args.communication_blind_proposals)
-    if initial_instance_statistics is not None:
-        instance_demand, instance_affinity = initial_instance_statistics
-    else:
-        if fixed_initial_lut is None:
-            node_lut, _ = _node_proxy_lut(
-                samples,
-                logical_instances,
-                fixed_instance_nodes,
-                demand_by_source,
-                affinity_by_source,
-                ranks_per_node=args.ranks_per_node,
-            )
-        else:
-            node_lut = fixed_initial_lut
-        instance_demand, instance_affinity = _mapped_instance_statistics(
-            samples,
-            node_lut,
-            logical_instances=logical_instances,
-        )
+    if fixed_initial_lut is None:
+        raise ValueError("Community candidates require their source mapping.")
+    instance_demand, instance_affinity = _mapped_instance_statistics(
+        samples,
+        fixed_initial_lut,
+        logical_instances=logical_instances,
+    )
     best: _Candidate | None = None
     hierarchy_group_sizes, level_omegas, gamma = _hierarchy_coefficients(args)
     if communication_blind:
@@ -564,35 +476,24 @@ def _build_candidate(
             slots_per_rank=args.slots_per_rank,
             logical_instances=logical_instances,
         )
-        if fixed_initial_lut is None:
-            initial_lut = _initial_lut_instances(
+        # Community proposals always compare the original mapping and its refinement.
+        lut_variants = [
+            fixed_initial_lut,
+            _optimize_lut_instances(
                 logical_instances,
                 instance_ranks,
+                fixed_initial_lut,
                 demand_by_source,
+                affinity_by_source,
                 ranks_per_node=args.ranks_per_node,
-                prefer_local=not communication_blind,
+                iterations=args.lut_iterations,
+                node_omega=node_omega,
+                rank_omega=rank_omega,
+                gamma=gamma,
                 hierarchy_group_sizes=hierarchy_group_sizes,
-            )
-        else:
-            initial_lut = fixed_initial_lut
-        lut_variants = [initial_lut]
-        if fixed_initial_lut is None or refine_fixed_initial_lut:
-            lut_variants.append(
-                _optimize_lut_instances(
-                    logical_instances,
-                    instance_ranks,
-                    initial_lut,
-                    demand_by_source,
-                    affinity_by_source,
-                    ranks_per_node=args.ranks_per_node,
-                    iterations=args.lut_iterations,
-                    node_omega=node_omega,
-                    rank_omega=rank_omega,
-                    gamma=gamma,
-                    hierarchy_group_sizes=hierarchy_group_sizes,
-                    level_omegas=level_omegas,
-                )
-            )
+                level_omegas=level_omegas,
+            ),
+        ]
         for lut_instances in lut_variants:
             try:
                 layout, owners, lut = _materialize_layout(

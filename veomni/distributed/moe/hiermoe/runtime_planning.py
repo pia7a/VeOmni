@@ -20,7 +20,6 @@ from .runtime_settings import _full_timing_range
 from .runtime_tensors import _local_tensor_view, _placement_group_all_true_mask
 from .runtime_types import (
     ExpertLayerState,
-    _CPUBatchedPlanState,
     _PendingPipelinePlan,
     _PipelinePlannerStageTiming,
     _PipelinePlannerWindows,
@@ -31,27 +30,6 @@ from .runtime_types import (
 
 class PlanningMixin:
     """Initialization planning and its existing collective/score pipeline."""
-
-    def _uses_cpu_process_planner(self) -> bool:
-        return self._cpu_planner_mode in {"process_blocking", "process_background"}
-
-    def _ensure_cpu_process_runtime(self) -> Any:
-        raise ValueError("CPU planner experiments were removed; use PlaceMoE hot_update.")
-
-    def _submit_cpu_batched_plan(self, step: int) -> None:
-        raise ValueError("CPU planner experiments were removed; use PlaceMoE hot_update.")
-
-    def _submit_cpu_process_plan(self, step: int, *, background: bool) -> _CPUBatchedPlanState | None:
-        raise ValueError("CPU planner experiments were removed; use PlaceMoE hot_update.")
-
-    def _service_cpu_process_collective(self, state: _CPUBatchedPlanState) -> None:
-        raise ValueError("CPU planner experiments were removed; use PlaceMoE hot_update.")
-
-    def _collect_cpu_process_plan(self, step: int) -> str:
-        raise ValueError("CPU planner experiments were removed; use PlaceMoE hot_update.")
-
-    def _collect_cpu_batched_plan(self, step: int) -> str:
-        raise ValueError("CPU planner experiments were removed; use PlaceMoE hot_update.")
 
     def _submit_pipeline_plan(
         self,
@@ -298,41 +276,6 @@ class PlanningMixin:
 
         if not self.fixed_pipeline_overlap:
             return
-        if self._cpu_planner_mode == "process_background":
-            order = self._pipeline_layer_order or tuple(self.layers)
-            if not order or layer_key != order[0]:
-                return
-            with self._pipeline_lock:
-                state = self._cpu_batch_state
-            if state is None or state.source_step != self._pipeline_step:
-                return
-            executor = self._pipeline_collective_executor
-            if executor is None:
-                raise RuntimeError("CPU planner process collective executor is unavailable.")
-            with self._pipeline_lock:
-                if state.process_collective_future is None:
-                    state.process_collective_future = executor.submit(
-                        self._service_cpu_process_collective,
-                        state,
-                    )
-            return
-        if self._cpu_planner_mode == "background":
-            order = self._pipeline_layer_order or tuple(self.layers)
-            if not order or layer_key != order[0]:
-                return
-            with self._pipeline_lock:
-                state = self._cpu_batch_state
-            if state is None or state.source_step != self._pipeline_step or state.future is None:
-                return
-            wait_started = time.perf_counter()
-            while not state.collective_ready.wait(timeout=settings._PIPELINE_HOST_EVENT_POLL_SECONDS):
-                if state.future.done():
-                    state.future.result()
-                if self._pipeline_shutdown:
-                    return
-            state.collective_ready_host_wait_ms += (time.perf_counter() - wait_started) * 1000.0
-            state.collective_gate.set()
-            return
         layer = self.layers.get(layer_key)
         combine_done = None if layer is None else self._pipeline_ready_event(self._pipeline_device(layer))
         with self._pipeline_lock:
@@ -356,65 +299,6 @@ class PlanningMixin:
         """Enforce collective completion before dispatch-backward uses the EP communicator."""
 
         if not self.fixed_pipeline_overlap:
-            return
-        if self._cpu_planner_mode == "process_background":
-            order = self._pipeline_layer_order or tuple(self.layers)
-            if not order or layer_key != order[0]:
-                return
-            with self._pipeline_lock:
-                state = self._cpu_batch_state
-            if state is None or state.source_step != self._pipeline_step:
-                return
-            wait_started = time.perf_counter()
-            while not state.collective_enqueued.wait(timeout=settings._PIPELINE_HOST_EVENT_POLL_SECONDS):
-                future = state.process_collective_future
-                if future is not None and future.done():
-                    future.result()
-                if self._pipeline_shutdown:
-                    return
-            state.collective_close_host_wait_ms += (time.perf_counter() - wait_started) * 1000.0
-            if state.collective_error is not None:
-                raise state.collective_error
-            done_event = state.collective_done_event
-            layer = self.layers.get(layer_key)
-            if layer is not None and done_event is not None and done_event.event is not None:
-                device = self._pipeline_device(layer)
-                if device.type != "cpu":
-                    device_api = get_torch_device()
-                    try:
-                        current_stream = device_api.current_stream(device)
-                    except TypeError:
-                        current_stream = device_api.current_stream()
-                    current_stream.wait_event(done_event.event)
-            return
-        if self._cpu_planner_mode == "background":
-            order = self._pipeline_layer_order or tuple(self.layers)
-            if not order or layer_key != order[0]:
-                return
-            with self._pipeline_lock:
-                state = self._cpu_batch_state
-            if state is None or state.source_step != self._pipeline_step or state.future is None:
-                return
-            wait_started = time.perf_counter()
-            while not state.collective_enqueued.wait(timeout=settings._PIPELINE_HOST_EVENT_POLL_SECONDS):
-                if state.future.done():
-                    state.future.result()
-                if self._pipeline_shutdown:
-                    return
-            state.collective_close_host_wait_ms += (time.perf_counter() - wait_started) * 1000.0
-            if state.collective_error is not None:
-                raise state.collective_error
-            done_event = state.collective_done_event
-            layer = self.layers.get(layer_key)
-            if layer is not None and done_event is not None and done_event.event is not None:
-                device = self._pipeline_device(layer)
-                if device.type != "cpu":
-                    device_api = get_torch_device()
-                    try:
-                        current_stream = device_api.current_stream(device)
-                    except TypeError:
-                        current_stream = device_api.current_stream()
-                    current_stream.wait_event(done_event.event)
             return
         with self._pipeline_lock:
             windows = self._pipeline_planner_windows.get(layer_key)
@@ -610,10 +494,6 @@ class PlanningMixin:
         return self.latest_pair
 
     @torch.no_grad()
-    def _plan_exact_single_swap_layers(self, layers: list[ExpertLayerState], step: int) -> list[str]:
-        raise ValueError("Historical exact-pair search was removed; use PlaceMoE hot_update.")
-
-    @torch.no_grad()
     def _plan_current_layer(self, layer: ExpertLayerState, step: int) -> list[str]:
         calibration = layer.planner_calibration
         selected = layer.latest_selected_experts
@@ -739,22 +619,6 @@ class PlanningMixin:
                 )
             )
         return committed
-
-    @torch.no_grad()
-    def _plan_npu_layer_owner_layers(self, layers: list[ExpertLayerState], step: int) -> list[str]:
-        raise ValueError("This historical selector was removed; use PlaceMoE hot_update.")
-
-    @torch.no_grad()
-    @torch.no_grad()
-    def _plan_online_lut_layers(self, layers: Sequence[ExpertLayerState]) -> list[str]:
-        raise ValueError("Online LUT experiments were removed; use PlaceMoE mapping updates.")
-
-    def _plan_forward_reuse_cover_layers(self, layers: Sequence[ExpertLayerState], step: int) -> list[str]:
-        raise ValueError("Forward-cover experiments were removed; use PlaceMoE hot_update.")
-
-    @torch.no_grad()
-    def _plan_legacy_batched_layers(self, layers: list[ExpertLayerState]) -> list[str]:
-        raise ValueError("This historical selector was removed; use PlaceMoE hot_update.")
 
     @torch.no_grad()
     def _reset_redundant_slots_for_online_freeze(self, layers: Sequence[ExpertLayerState]) -> None:

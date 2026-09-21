@@ -104,16 +104,6 @@ def expand_redundant_expert_slots(model: nn.Module, *, ep_size: int, redundant_s
     return expanded_layers
 
 
-def _slot_tensor(tensor: torch.Tensor, slot: int) -> torch.Tensor:
-    local = _local_tensor_view(tensor)
-    return local.detach()[slot : slot + 1].contiguous()
-
-
-def _empty_slot_like(tensor: torch.Tensor) -> torch.Tensor:
-    local = _local_tensor_view(tensor)
-    return torch.empty((0, *local.shape[1:]), dtype=local.dtype, device=local.device)
-
-
 def _ep_global_rank(ep_group: dist.ProcessGroup | None, ep_rank: int) -> int:
     if ep_group is None:
         return int(ep_rank)
@@ -199,127 +189,6 @@ def _unpack_swap_chunk(recv_buffer: torch.Tensor, chunk: list[_SwapBucketItem]) 
         recv_view = recv_buffer[offset : offset + numel].view_as(local_tensor.detach()[local_slot])
         local_tensor.detach()[local_slot].copy_(recv_view)
         offset += numel
-
-
-@torch.no_grad()
-def _exchange_or_swap_slot_entries(
-    entries: Iterable[_SwapTensorEntry],
-    lhs_rank: int,
-    rhs_rank: int,
-    ep_rank: int,
-    ep_size: int,
-    ep_group: dist.ProcessGroup | None,
-) -> None:
-    entry_list = list(entries)
-    if lhs_rank == rhs_rank:
-        if ep_rank == lhs_rank:
-            for entry in entry_list:
-                _swap_local_slot(entry.tensor, entry.lhs_slot, entry.rhs_slot)
-        return
-
-    if ep_group is None or ep_size <= 1 or ep_rank not in (lhs_rank, rhs_rank):
-        return
-
-    peer_rank = rhs_rank if ep_rank == lhs_rank else lhs_rank
-    peer_global_rank = _ep_global_rank(ep_group, peer_rank)
-
-    buckets: dict[tuple[torch.device, torch.dtype], list[_SwapBucketItem]] = defaultdict(list)
-    for entry in entry_list:
-        local_slot = entry.lhs_slot if ep_rank == lhs_rank else entry.rhs_slot
-        local_tensor = _local_tensor_view(entry.tensor)
-        slot_view = local_tensor.detach()[local_slot]
-        send_view = slot_view.contiguous().view(-1)
-        numel = int(send_view.numel())
-        nbytes = numel * int(send_view.element_size())
-        buckets[(send_view.device, send_view.dtype)].append((local_tensor, int(local_slot), send_view, numel, nbytes))
-
-    for bucket in buckets.values():
-        for chunk in _chunk_swap_bucket(bucket):
-            send_buffer = _pack_swap_chunk(chunk)
-            recv_buffer = torch.empty_like(send_buffer)
-            works = dist.batch_isend_irecv(
-                [
-                    dist.P2POp(dist.isend, send_buffer, peer_global_rank),
-                    dist.P2POp(dist.irecv, recv_buffer, peer_global_rank),
-                ]
-            )
-            for work in works:
-                work.wait()
-
-            _unpack_swap_chunk(recv_buffer, chunk)
-
-
-@torch.no_grad()
-def _exchange_or_swap_grouped_slot_entries(
-    grouped_entries: dict[tuple[int, int], list[_SwapTensorEntry]],
-    ep_rank: int,
-    ep_size: int,
-    ep_group: dist.ProcessGroup | None,
-) -> None:
-    remote_buckets: dict[tuple[torch.device, torch.dtype], dict[int, list[_SwapBucketItem]]] = defaultdict(
-        lambda: defaultdict(list)
-    )
-
-    for (lhs_rank, rhs_rank), entry_list in sorted(grouped_entries.items()):
-        if lhs_rank == rhs_rank:
-            if ep_rank == lhs_rank:
-                for entry in entry_list:
-                    _swap_local_slot(entry.tensor, entry.lhs_slot, entry.rhs_slot)
-            continue
-
-        if ep_group is None or ep_size <= 1 or ep_rank not in (lhs_rank, rhs_rank):
-            continue
-
-        peer_rank = rhs_rank if ep_rank == lhs_rank else lhs_rank
-        peer_global_rank = _ep_global_rank(ep_group, peer_rank)
-        for entry in entry_list:
-            local_slot = entry.lhs_slot if ep_rank == lhs_rank else entry.rhs_slot
-            local_tensor = _local_tensor_view(entry.tensor)
-            slot_view = local_tensor.detach()[local_slot]
-            send_view = slot_view.contiguous().view(-1)
-            numel = int(send_view.numel())
-            nbytes = numel * int(send_view.element_size())
-            remote_buckets[(send_view.device, send_view.dtype)][peer_global_rank].append(
-                (local_tensor, int(local_slot), send_view, numel, nbytes)
-            )
-
-    for peer_buckets in remote_buckets.values():
-        peer_chunks = [
-            (peer_global_rank, _chunk_swap_bucket(bucket))
-            for peer_global_rank, bucket in sorted(peer_buckets.items())
-            if bucket
-        ]
-        chunk_indices = [0 for _ in peer_chunks]
-        while any(index < len(chunks) for index, (_peer_global_rank, chunks) in zip(chunk_indices, peer_chunks)):
-            ops: list[dist.P2POp] = []
-            descriptors: list[tuple[torch.Tensor, torch.Tensor, list[_SwapBucketItem]]] = []
-            wave_nbytes = 0
-            for idx, (peer_global_rank, chunks) in enumerate(peer_chunks):
-                if chunk_indices[idx] >= len(chunks):
-                    continue
-                chunk = chunks[chunk_indices[idx]]
-                chunk_nbytes = _swap_chunk_nbytes(chunk)
-                if ops and wave_nbytes + 2 * chunk_nbytes > settings._MAX_SWAP_WAVE_BYTES:
-                    continue
-                chunk_indices[idx] += 1
-                wave_nbytes += 2 * chunk_nbytes
-                send_buffer = _pack_swap_chunk(chunk)
-                recv_buffer = torch.empty_like(send_buffer)
-                ops.extend(
-                    [
-                        dist.P2POp(dist.isend, send_buffer, peer_global_rank),
-                        dist.P2POp(dist.irecv, recv_buffer, peer_global_rank),
-                    ]
-                )
-                descriptors.append((send_buffer, recv_buffer, chunk))
-
-            if not ops:
-                continue
-            works = dist.batch_isend_irecv(ops)
-            for work in works:
-                work.wait()
-            for _send_buffer, recv_buffer, chunk in descriptors:
-                _unpack_swap_chunk(recv_buffer, chunk)
 
 
 @torch.no_grad()
@@ -713,35 +582,6 @@ def _zero_slot_entries(entries: Iterable[_CoverTensorEntry], dst_rank: int, ep_r
         _zero_local_slot(entry.tensor, entry.dst_slot)
 
 
-@torch.no_grad()
-def _exchange_or_swap_slots(
-    tensors: Iterable[torch.Tensor],
-    lhs_rank: int,
-    lhs_slot: int,
-    rhs_rank: int,
-    rhs_slot: int,
-    ep_rank: int,
-    ep_size: int,
-    ep_group: dist.ProcessGroup | None,
-) -> None:
-    entries = tuple(_SwapTensorEntry(tensor=tensor, lhs_slot=lhs_slot, rhs_slot=rhs_slot) for tensor in tensors)
-    _exchange_or_swap_slot_entries(entries, lhs_rank, rhs_rank, ep_rank, ep_size, ep_group)
-
-
-@torch.no_grad()
-def _exchange_or_swap_slot(
-    tensor: torch.Tensor,
-    lhs_rank: int,
-    lhs_slot: int,
-    rhs_rank: int,
-    rhs_slot: int,
-    ep_rank: int,
-    ep_size: int,
-    ep_group: dist.ProcessGroup | None,
-) -> None:
-    _exchange_or_swap_slots((tensor,), lhs_rank, lhs_slot, rhs_rank, rhs_slot, ep_rank, ep_size, ep_group)
-
-
 def _iter_leaf_optimizers(optimizer: Any) -> Iterable[Any]:
     if optimizer is None:
         return ()
@@ -750,61 +590,10 @@ def _iter_leaf_optimizers(optimizer: Any) -> Iterable[Any]:
     return (optimizer,)
 
 
-def _optimizer_has_param(optimizer: Any, param: torch.nn.Parameter) -> bool:
-    return any(any(group_param is param for group_param in group["params"]) for group in optimizer.param_groups)
-
-
-def _param_group_for_param(optimizer: Any, param: torch.nn.Parameter) -> dict[str, Any] | None:
-    for group in optimizer.param_groups:
-        if any(group_param is param for group_param in group["params"]):
-            return group
-    return None
-
-
 def _step_device(param: torch.nn.Parameter, group: dict[str, Any]) -> torch.device:
     if bool(group.get("capturable", False)) or bool(group.get("fused", False)):
         return param.device
     return torch.device("cpu")
-
-
-def _ensure_optimizer_state_for_group(
-    optimizer: Any, param: torch.nn.Parameter, group: dict[str, Any]
-) -> dict[str, Any] | None:
-    state = optimizer.state[param]
-    if state:
-        return state
-
-    opt_name = type(optimizer).__name__
-    if opt_name == "AdamW":
-        state["step"] = torch.zeros((), dtype=torch.float32, device=_step_device(param, group))
-        state["exp_avg"] = torch.zeros_like(param, memory_format=torch.preserve_format)
-        state["exp_avg_sq"] = torch.zeros_like(param, memory_format=torch.preserve_format)
-        if bool(group.get("amsgrad", False)):
-            state["max_exp_avg_sq"] = torch.zeros_like(param, memory_format=torch.preserve_format)
-    elif opt_name == "AnyPrecisionAdamW":
-        state["step"] = torch.tensor(0.0)
-        state["exp_avg"] = torch.zeros_like(param, dtype=group["momentum_dtype"])
-        state["exp_avg_sq"] = torch.zeros_like(param, dtype=group["variance_dtype"])
-        if bool(group.get("use_kahan_summation", False)):
-            state["compensation"] = torch.zeros_like(param, dtype=group["compensation_buffer_dtype"])
-    elif opt_name == "DistributedMuon":
-        state["momentum_buffer"] = torch.zeros_like(param, memory_format=torch.preserve_format)
-    else:
-        raise NotImplementedError(
-            f"HierMoE expert swap does not know how to initialize optimizer state for {opt_name}."
-        )
-    return state
-
-
-def _ensure_optimizer_state(optimizer: Any, param: torch.nn.Parameter) -> dict[str, Any] | None:
-    if not _optimizer_has_param(optimizer, param):
-        return None
-
-    group = _param_group_for_param(optimizer, param)
-    if group is None:
-        return None
-
-    return _ensure_optimizer_state_for_group(optimizer, param, group)
 
 
 def _existing_optimizer_state(optimizer: Any, param: torch.nn.Parameter) -> dict[str, Any] | None:
@@ -822,30 +611,6 @@ def _build_optimizer_param_bindings(optimizer: Any) -> dict[int, tuple[_Optimize
             for param in group["params"]:
                 bindings[id(param)].append(_OptimizerParamBinding(opt, group))
     return {param_id: tuple(items) for param_id, items in bindings.items()}
-
-
-@torch.no_grad()
-def _swap_optimizer_state_slots(
-    optimizer: Any,
-    param: torch.nn.Parameter,
-    lhs_rank: int,
-    lhs_slot: int,
-    rhs_rank: int,
-    rhs_slot: int,
-    ep_rank: int,
-    ep_size: int,
-    ep_group: dist.ProcessGroup | None,
-) -> None:
-    for opt in _iter_leaf_optimizers(optimizer):
-        state = _existing_optimizer_state(opt, param)
-        if not state:
-            continue
-        for value in state.values():
-            if not torch.is_tensor(value):
-                continue
-            if tuple(_local_tensor_view(value).shape) != tuple(_local_tensor_view(param).shape):
-                continue
-            _exchange_or_swap_slot(value, lhs_rank, lhs_slot, rhs_rank, rhs_slot, ep_rank, ep_size, ep_group)
 
 
 def _optimizer_state_slot_tensors(optimizer: Any, param: torch.nn.Parameter) -> list[torch.Tensor]:

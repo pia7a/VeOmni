@@ -36,102 +36,6 @@ class CalibrationMixin:
     def placement_timing_event(self) -> AcceleratorEvent:
         return self._timing_event()
 
-    def record_dispatch_statistics(
-        self,
-        *,
-        layer_key: str,
-        step: int,
-        dispatch_context: Any,
-    ) -> None:
-        """Cache exact baseline receive counts already produced by Forward.
-
-        The winner validator previously rescanned every token row to rebuild
-        the unchanged baseline. Hierarchical dispatch already computed the
-        destination receive counts: each rank contributes its rank receive
-        total and its relay's node receive total to a sparse packed row. A
-        later SUM collective reconstructs the same global rank/node vector as
-        ``_local_packed_counts`` without another token scan.
-        """
-
-        if not self._forward_reuse_cover:
-            return
-        layer = self.layers.get(layer_key)
-        if layer is None or int(step) != int(layer.latest_route_step):
-            return
-        if getattr(dispatch_context, "mode", None) != "hierarchical":
-            layer.latest_forward_baseline_communication_counts = None
-            layer.latest_forward_traffic_endpoint_statistics = None
-            return
-        stage1_send = getattr(dispatch_context, "stage1_unique_send_splits", None)
-        stage1_recv = getattr(dispatch_context, "stage1_unique_recv_splits", None)
-        stage1_assignment_send = getattr(
-            dispatch_context,
-            "stage1_assignment_send_splits",
-            None,
-        )
-        stage2_send = getattr(dispatch_context, "stage2_unique_send_splits", None)
-        stage2_recv = getattr(dispatch_context, "stage2_unique_recv_splits", None)
-        stage2_assignment_send = getattr(
-            dispatch_context,
-            "stage2_assignment_send_splits",
-            None,
-        )
-        valid_sizes = [
-            int(size)
-            for size in self.hierarchy.group_sizes[: max(0, int(self.hierarchy.selected_dim) - 1)]
-            if 1 < int(size) < self.ep_size and self.ep_size % int(size) == 0
-        ]
-        if (
-            stage1_send is None
-            or stage1_recv is None
-            or stage1_assignment_send is None
-            or stage2_send is None
-            or stage2_recv is None
-            or stage2_assignment_send is None
-            or len(valid_sizes) != 1
-        ):
-            layer.latest_forward_baseline_communication_counts = None
-            layer.latest_forward_traffic_endpoint_statistics = None
-            return
-
-        group_size = valid_sizes[0]
-        num_nodes = self.ep_size // group_size
-        if (
-            len(stage1_send) != num_nodes
-            or len(stage1_assignment_send) != num_nodes
-            or len(stage2_send) != group_size
-            or len(stage2_assignment_send) != group_size
-        ):
-            layer.latest_forward_baseline_communication_counts = None
-            layer.latest_forward_traffic_endpoint_statistics = None
-            return
-        counts = torch.zeros((self.ep_size + self.ep_size // group_size,), dtype=torch.float32)
-        counts[self.ep_rank] = float(sum(int(value) for value in stage2_recv))
-        counts[self.ep_size + self.ep_rank // group_size] = float(sum(int(value) for value in stage1_recv))
-        layer.latest_forward_baseline_communication_counts = counts
-
-        endpoint = torch.zeros((8, self.ep_size), dtype=torch.float32)
-        lane = self.ep_rank % group_size
-        node = self.ep_rank // group_size
-        stage1_destinations = lane * num_nodes + torch.arange(num_nodes)
-        stage2_destinations = node * group_size + torch.arange(group_size)
-
-        endpoint[0, self.ep_rank] = float(sum(int(value) for value in stage1_send))
-        endpoint[1, stage1_destinations] = torch.tensor(stage1_send, dtype=torch.float32)
-        endpoint[2, self.ep_rank] = float(sum(int(value) for value in stage1_assignment_send))
-        endpoint[3, stage1_destinations] = torch.tensor(
-            stage1_assignment_send,
-            dtype=torch.float32,
-        )
-        endpoint[4, self.ep_rank] = float(sum(int(value) for value in stage2_send))
-        endpoint[5, stage2_destinations] = torch.tensor(stage2_send, dtype=torch.float32)
-        endpoint[6, self.ep_rank] = float(sum(int(value) for value in stage2_assignment_send))
-        endpoint[7, stage2_destinations] = torch.tensor(
-            stage2_assignment_send,
-            dtype=torch.float32,
-        )
-        layer.latest_forward_traffic_endpoint_statistics = endpoint.reshape(-1)
-
     def record_layer_timing(
         self,
         *,
@@ -206,8 +110,6 @@ class CalibrationMixin:
         counts = tokens_per_local_expert.detach()
         if counts.ndim != 1 or int(counts.numel()) != int(layer.num_local_experts):
             return
-        if self._forward_reuse_cover:
-            layer.latest_tokens_per_local_expert = counts
         if layer.accumulated_tokens_per_local_expert is None:
             layer.accumulated_tokens_per_local_expert = counts.clone()
         else:

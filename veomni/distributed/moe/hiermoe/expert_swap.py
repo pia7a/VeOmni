@@ -15,7 +15,7 @@ from .core_planner import CoReMoEPlanner
 from .greedy_planner import GreedyCommunicationPlanner
 from .perf_model import HierMoEPerfModel
 from .placemoe.runtime import HotUpdateController, PlaceMoECalibration
-from .planner import CurrentRoutePlanner, PlacementAction, PlacementPlan
+from .planner import CurrentRoutePlanner, PlacementPlan
 from .runtime_artifact import ArtifactMixin
 from .runtime_calibration import CalibrationMixin
 from .runtime_checkpoint import CheckpointMixin
@@ -39,7 +39,6 @@ from .runtime_tensors import (
 from .runtime_tensors import expand_redundant_expert_slots as expand_redundant_expert_slots
 from .runtime_types import (
     ExpertLayerState,
-    _CPUBatchedPlanState,
     _OptimizerParamBinding,
     _PendingLayerSwap,
     _PendingPipelinePlan,
@@ -155,37 +154,6 @@ class ExpertSwapManager(
             raise ValueError(
                 f"VEOMNI_HIERMOE_ABLATION_GRAD_MODE must be hidden or blocking, got {settings._ABLATION_GRAD_MODE!r}."
             )
-        if settings._CPU_PLANNER_MODE not in {
-            "off",
-            "blocking",
-            "background",
-            "process_blocking",
-            "process_background",
-        }:
-            raise ValueError(
-                "VEOMNI_HIERMOE_CPU_PLANNER_MODE must be off, blocking, background, "
-                "process_blocking, or process_background, "
-                f"got {settings._CPU_PLANNER_MODE!r}."
-            )
-        if settings._CPU_PLANNER_MODE != "off" and (
-            not self.fixed_pipeline_overlap
-            or self.expert_swap_mode != "step"
-            or self.expert_swap_selector != "hiermoe_greedy_cover_p1"
-        ):
-            raise ValueError(
-                "The experimental CPU planner requires fixed-pipeline step mode with "
-                "the hiermoe_greedy_cover_p1 selector."
-            )
-        if settings._NPU_LAYER_OWNER_BLOCKING and (
-            not self.fixed_pipeline_overlap
-            or self.expert_swap_mode != "step"
-            or self.expert_swap_selector != "hiermoe_greedy_cover_p1"
-            or settings._CPU_PLANNER_MODE != "off"
-        ):
-            raise ValueError(
-                "Blocking NPU layer-owner planning requires fixed-pipeline step mode, "
-                "the hiermoe_greedy_cover_p1 selector, and CPU planner mode off."
-            )
         if settings._NPU_LAYER_OWNER_COLLECTIVE not in {"reduce_scatter", "all_to_all"}:
             raise ValueError(
                 "VEOMNI_HIERMOE_NPU_LAYER_OWNER_COLLECTIVE must be reduce_scatter or all_to_all, "
@@ -213,55 +181,19 @@ class ExpertSwapManager(
             self.expert_swap_mode != "step"
             or self.expert_swap_max_pairs_per_layer != 0
             or settings._ONLINE_FREEZE_COST_MODE != "off"
-            or settings._FORWARD_REUSE_COVER
         ):
             raise ValueError(
                 "Cost-model verification requires step mode, zero swaps, and all placement experiments disabled."
             )
-        if settings._ONLINE_LUT_UPDATE and (
-            not self.fixed_pipeline_overlap
-            or self.expert_swap_mode != "step"
-            or self.expert_swap_selector != "hiermoe_greedy_cover_p1"
-            or settings._ABLATION_REPLAY_MODE != "static"
-            or not settings._FORWARD_REUSE_COVER
-            or not settings._FORWARD_REUSE_COVER_PATCH_REMAP
-            or settings._CPU_PLANNER_MODE != "off"
-            or settings._NPU_LAYER_OWNER_BLOCKING
-            or settings._ONLINE_FREEZE_COST_MODE != "off"
-            or cost_model_verify
-        ):
-            raise ValueError(
-                "Online LUT correction requires a preloaded static layout, fixed-pipeline "
-                "step mode, the hiermoe_greedy_cover_p1 selector, source-LUT Forward "
-                "routing, and all other online planners disabled."
-            )
         if settings._HOT_UPDATE and (
             self.expert_swap_mode != "step"
             or settings._ABLATION_REPLAY_MODE not in {"off", "static"}
-            or settings._ONLINE_LUT_UPDATE
-            or settings._CPU_PLANNER_MODE != "off"
-            or settings._NPU_LAYER_OWNER_BLOCKING
             or settings._ONLINE_FREEZE_COST_MODE != "off"
             or (settings._COST_MODEL_VERIFY and not auto_calibration)
         ):
             raise ValueError("PlaceMoE hot updates require step mode and all other online planners disabled.")
         if settings._HOT_UPDATE and not settings._HOT_UPDATE_WORK_ROOT:
             raise ValueError("PlaceMoE hot-update work root must not be empty.")
-        if settings._FORWARD_REUSE_COVER and (
-            not self.fixed_pipeline_overlap
-            or self.expert_swap_mode != "step"
-            or self.expert_swap_selector != "hiermoe_greedy_cover_p1"
-            or (not settings._FIXED_R2_LAYOUT and not settings._FORWARD_REUSE_COVER_EMPTY_SEEDING)
-            or settings._CPU_PLANNER_MODE != "off"
-            or settings._NPU_LAYER_OWNER_BLOCKING
-            or settings._ONLINE_FREEZE_COST_MODE != "off"
-            or settings._ABLATION_REPLAY_MODE not in {"off", "static"}
-        ):
-            raise ValueError(
-                "Forward-reuse cover planning requires fixed R2 or explicit empty seeding, "
-                "fixed-pipeline step mode, the hiermoe_greedy_cover_p1 selector, and all "
-                "other online planners disabled."
-            )
         if settings._FORWARD_REUSE_COVER_EMPTY_SEEDING and settings._FIXED_R2_LAYOUT:
             raise ValueError("Empty-seeding Forward Cover requires VEOMNI_HIERMOE_FIXED_R2_LAYOUT=0.")
         if settings._FORWARD_REUSE_COVER_PATCH_REMAP and not settings._FORWARD_REUSE_COVER:
@@ -285,9 +217,6 @@ class ExpertSwapManager(
         self._initial_layout_path = settings._INITIAL_LAYOUT_PATH
         self._ablation_migration_mode = settings._ABLATION_MIGRATION_MODE
         self._ablation_grad_mode = settings._ABLATION_GRAD_MODE
-        self._cpu_planner_mode = settings._CPU_PLANNER_MODE
-        self._npu_layer_owner_blocking = settings._NPU_LAYER_OWNER_BLOCKING
-        self._npu_layer_owner_collective = settings._NPU_LAYER_OWNER_COLLECTIVE
         self._online_freeze_cost_mode = settings._ONLINE_FREEZE_COST_MODE
         self._auto_calibration = bool(auto_calibration)
         self._auto_calibration_finalized = not self._auto_calibration
@@ -324,24 +253,6 @@ class ExpertSwapManager(
             | None
         ) = None
         self._cost_model_verify_complete = False
-        self._online_lut_update = settings._ONLINE_LUT_UPDATE
-        self._online_lut_start_step = settings._ONLINE_LUT_START_STEP
-        self._online_lut_min_gain = settings._ONLINE_LUT_MIN_GAIN
-        self._forward_reuse_cover = settings._FORWARD_REUSE_COVER
-        self._forward_reuse_cover_patch_remap = settings._FORWARD_REUSE_COVER_PATCH_REMAP
-        self._forward_reuse_cover_fast = settings._FORWARD_REUSE_COVER_FAST
-        self._forward_reuse_cover_compute_weight = settings._FORWARD_REUSE_COVER_COMPUTE_WEIGHT
-        self._forward_reuse_cover_compute_ms_per_assignment = settings._FORWARD_REUSE_COVER_COMPUTE_MS_PER_ASSIGNMENT
-        self._forward_reuse_cover_min_gain = settings._FORWARD_REUSE_COVER_MIN_GAIN
-        self._forward_reuse_cover_rounds = settings._FORWARD_REUSE_COVER_ROUNDS
-        self._forward_reuse_cover_only_step = settings._FORWARD_REUSE_COVER_ONLY_STEP
-        self._forward_reuse_cover_victim_mode = settings._FORWARD_REUSE_COVER_VICTIM_MODE
-        self._forward_reuse_cover_service_scope = settings._FORWARD_REUSE_COVER_SERVICE_SCOPE
-        self._forward_reuse_cover_confirm_samples = settings._FORWARD_REUSE_COVER_CONFIRM_SAMPLES
-        self._forward_reuse_cover_aggregate_service_group = settings._FORWARD_REUSE_COVER_AGGREGATE_SERVICE_GROUP
-        self._forward_reuse_cover_proposal_topk = settings._FORWARD_REUSE_COVER_PROPOSAL_TOPK
-        self._forward_reuse_cover_empty_seeding = settings._FORWARD_REUSE_COVER_EMPTY_SEEDING
-        self._forward_reuse_cover_pending: dict[str, tuple[PlacementAction, int]] = {}
         self._hot_update = settings._HOT_UPDATE
         self._hot_update_layout_interval = int(settings._HOT_UPDATE_LAYOUT_INTERVAL)
         self._hot_update_mapping_interval = int(settings._HOT_UPDATE_MAPPING_INTERVAL)
@@ -361,8 +272,8 @@ class ExpertSwapManager(
         self._hot_update_last_planner_ms = 0.0
         self._hot_update_last_migration_ms = 0.0
         self._hot_update_last_moved_slots = 0
-        if self._forward_reuse_cover_service_scope == "rank":
-            self._forward_reuse_cover_service_group_size = 1
+        if settings._FORWARD_REUSE_COVER_SERVICE_SCOPE == "rank":
+            service_group_size = 1
         else:
             proper_group_sizes = [
                 int(group_size)
@@ -371,7 +282,32 @@ class ExpertSwapManager(
             ]
             if not proper_group_sizes:
                 raise ValueError("Node-scoped Forward-reuse Cover requires a proper hierarchy group size.")
-            self._forward_reuse_cover_service_group_size = min(proper_group_sizes)
+            service_group_size = min(proper_group_sizes)
+        # Preserve historical metric keys without retaining retired planner state.
+        self._retired_planner_metrics = {
+            "hiermoe/cpu_planner_mode": settings._CPU_PLANNER_MODE,
+            "hiermoe/online_lut_update": int(settings._ONLINE_LUT_UPDATE),
+            "hiermoe/online_lut_start_step": settings._ONLINE_LUT_START_STEP,
+            "hiermoe/online_lut_min_gain": settings._ONLINE_LUT_MIN_GAIN,
+            "hiermoe/forward_reuse_cover": int(settings._FORWARD_REUSE_COVER),
+            "hiermoe/forward_reuse_cover_patch_remap": int(settings._FORWARD_REUSE_COVER_PATCH_REMAP),
+            "hiermoe/forward_reuse_cover_fast": int(settings._FORWARD_REUSE_COVER_FAST),
+            "hiermoe/forward_reuse_cover_compute_weight": settings._FORWARD_REUSE_COVER_COMPUTE_WEIGHT,
+            "hiermoe/forward_reuse_cover_compute_ms_per_assignment": settings._FORWARD_REUSE_COVER_COMPUTE_MS_PER_ASSIGNMENT,
+            "hiermoe/forward_reuse_cover_min_gain": settings._FORWARD_REUSE_COVER_MIN_GAIN,
+            "hiermoe/forward_reuse_cover_rounds": settings._FORWARD_REUSE_COVER_ROUNDS,
+            "hiermoe/forward_reuse_cover_only_step": settings._FORWARD_REUSE_COVER_ONLY_STEP,
+            "hiermoe/forward_reuse_cover_victim_mode": settings._FORWARD_REUSE_COVER_VICTIM_MODE,
+            "hiermoe/forward_reuse_cover_service_scope": settings._FORWARD_REUSE_COVER_SERVICE_SCOPE,
+            "hiermoe/forward_reuse_cover_service_group_size": service_group_size,
+            "hiermoe/forward_reuse_cover_aggregate_service_group": int(
+                settings._FORWARD_REUSE_COVER_AGGREGATE_SERVICE_GROUP
+            ),
+            "hiermoe/forward_reuse_cover_proposal_topk": settings._FORWARD_REUSE_COVER_PROPOSAL_TOPK,
+            "hiermoe/forward_reuse_cover_empty_seeding": int(settings._FORWARD_REUSE_COVER_EMPTY_SEEDING),
+            "hiermoe/forward_reuse_cover_confirm_samples": settings._FORWARD_REUSE_COVER_CONFIRM_SAMPLES,
+            "hiermoe/forward_reuse_cover_pending": 0,
+        }
         self._ablation_actions_by_step: dict[int, dict[str, tuple[tuple[str, str], ...]]] = {}
         self._ablation_expected_layouts: dict[str, tuple[int, ...]] = {}
         self._ablation_expected_owner_slots: dict[str, tuple[int, ...]] = {}
@@ -456,11 +392,6 @@ class ExpertSwapManager(
         )
         # NCCL host launches stay on the autograd thread; GPU work overlaps on its dedicated stream.
         self._pipeline_grad_executor = None
-        self._cpu_plan_executor = (
-            ThreadPoolExecutor(max_workers=1, thread_name_prefix="hiermoe-cpu-batch")
-            if self._cpu_planner_mode == "background"
-            else None
-        )
         self._pipeline_streams: dict[tuple[str, torch.device], Any] = {}
         self._pipeline_plan_futures: dict[str, Future[_PipelinePlanResult]] = {}
         self._pipeline_planner_windows: dict[str, _PipelinePlannerWindows] = {}
@@ -477,8 +408,6 @@ class ExpertSwapManager(
         self._pipeline_grad_window_exposed_ms = 0.0
         self._pipeline_grad_hook_handles: list[Any] = []
         self._pipeline_grad_hook_params: set[int] = set()
-        self._cpu_batch_state: _CPUBatchedPlanState | None = None
-        self._cpu_process_runtime: Any | None = None
         self._cpu_training_affinity: tuple[int, ...] = ()
         self._cpu_planner_affinity: tuple[int, ...] = ()
         self._hot_update_resources = settings._HOT_UPDATE_RESOURCES
@@ -503,8 +432,6 @@ class ExpertSwapManager(
     def layer_calibration_enabled(self) -> bool:
         if self._cost_model_verify:
             return not self._cost_model_verify_complete
-        if self._forward_reuse_cover:
-            return False
         if self.expert_swap_selector == "current_joint":
             return True
         if self.expert_swap_selector == "hiermoe_greedy_cover_p1":
@@ -519,6 +446,7 @@ class ExpertSwapManager(
             return
         self._metrics_step = int(step)
         self._placement_metrics = {
+            **self._retired_planner_metrics,
             "hiermoe/placement_replica_rounds_configured": (
                 "auto" if self.configured_max_replica_rounds is None else self.configured_max_replica_rounds
             ),
@@ -530,7 +458,6 @@ class ExpertSwapManager(
             "hiermoe/expert_swap_selector": self.expert_swap_selector,
             "hiermoe/fixed_pipeline_overlap": int(self.fixed_pipeline_overlap),
             "hiermoe/gradient_overlap_enabled": int(self.gradient_overlap_enabled),
-            "hiermoe/cpu_planner_mode": self._cpu_planner_mode,
             "hiermoe/cpu_training_affinity_cores": len(self._cpu_training_affinity),
             "hiermoe/cpu_planner_affinity_cores": len(self._cpu_planner_affinity),
             "hiermoe/ablation_replay_mode": self._ablation_replay_mode,
@@ -542,9 +469,6 @@ class ExpertSwapManager(
             "hiermoe/online_freeze_route_ms_per_assignment": self._online_freeze_route_ms_per_assignment,
             "hiermoe/online_freeze_traffic_intercept_ms": self._online_freeze_traffic_intercept_ms,
             "hiermoe/fixed_r2_mirrored_remap": int(settings._FORCE_FIXED_R2_MIRRORED_REMAP),
-            "hiermoe/online_lut_update": int(self._online_lut_update),
-            "hiermoe/online_lut_start_step": self._online_lut_start_step,
-            "hiermoe/online_lut_min_gain": self._online_lut_min_gain,
             "placemoe/hot_update_enabled": int(self._hot_update),
             "placemoe/calibration_compute_mape_percent": self._auto_calibration_compute_mape,
             "placemoe/calibration_communication_mape_percent": self._auto_calibration_communication_mape,
@@ -566,26 +490,6 @@ class ExpertSwapManager(
             "placemoe/last_planner_ms": self._hot_update_last_planner_ms,
             "placemoe/last_migration_ms": self._hot_update_last_migration_ms,
             "placemoe/last_moved_slots": self._hot_update_last_moved_slots,
-            "hiermoe/forward_reuse_cover": int(self._forward_reuse_cover),
-            "hiermoe/forward_reuse_cover_patch_remap": int(self._forward_reuse_cover_patch_remap),
-            "hiermoe/forward_reuse_cover_fast": int(self._forward_reuse_cover_fast),
-            "hiermoe/forward_reuse_cover_compute_weight": self._forward_reuse_cover_compute_weight,
-            "hiermoe/forward_reuse_cover_compute_ms_per_assignment": (
-                self._forward_reuse_cover_compute_ms_per_assignment
-            ),
-            "hiermoe/forward_reuse_cover_min_gain": self._forward_reuse_cover_min_gain,
-            "hiermoe/forward_reuse_cover_rounds": self._forward_reuse_cover_rounds,
-            "hiermoe/forward_reuse_cover_only_step": self._forward_reuse_cover_only_step,
-            "hiermoe/forward_reuse_cover_victim_mode": self._forward_reuse_cover_victim_mode,
-            "hiermoe/forward_reuse_cover_service_scope": self._forward_reuse_cover_service_scope,
-            "hiermoe/forward_reuse_cover_service_group_size": self._forward_reuse_cover_service_group_size,
-            "hiermoe/forward_reuse_cover_aggregate_service_group": int(
-                self._forward_reuse_cover_aggregate_service_group
-            ),
-            "hiermoe/forward_reuse_cover_proposal_topk": self._forward_reuse_cover_proposal_topk,
-            "hiermoe/forward_reuse_cover_empty_seeding": int(self._forward_reuse_cover_empty_seeding),
-            "hiermoe/forward_reuse_cover_confirm_samples": self._forward_reuse_cover_confirm_samples,
-            "hiermoe/forward_reuse_cover_pending": len(self._forward_reuse_cover_pending),
             "hiermoe/pipeline_planner_backend": (
                 self._planner_collective_backend(self._pipeline_planner_group)
                 if self._pipeline_planner_group is not None
@@ -786,19 +690,6 @@ class ExpertSwapManager(
             return self._run_cost_model_verification(layers, int(step))
         if self._hot_update:
             return self._run_hot_update_step(int(step))
-        if self._online_lut_update:
-            if (
-                int(step) < self._online_lut_start_step
-                or self.expert_swap_interval <= 0
-                or int(step) % self.expert_swap_interval != 0
-            ):
-                self.latest_pair = "none"
-                return self.latest_pair
-            layers = [self.layers[layer_key] for layer_key in sorted(self.layers)]
-            with _full_timing_range("hiermoe_online_lut_plan"):
-                committed = self._plan_online_lut_layers(layers)
-            self.latest_pair = ",".join(committed) if committed else "none"
-            return self.latest_pair
         if self._ablation_replay_mode != "off":
             return self._queue_ablation_replay_step(int(step))
         if self._cost_model_verify:
@@ -806,42 +697,12 @@ class ExpertSwapManager(
             return self._run_cost_model_verification(layers, int(step))
         if self._online_freeze_cost_mode != "off":
             return self._run_online_freeze_step(int(step))
-        if self._forward_reuse_cover:
-            if (
-                int(step) <= 0
-                or (self._forward_reuse_cover_only_step >= 0 and int(step) != self._forward_reuse_cover_only_step)
-                or self.expert_swap_interval <= 0
-                or int(step) % self.expert_swap_interval != 0
-            ):
-                self.latest_pair = "none"
-                return self.latest_pair
-            layers = [self.layers[layer_key] for layer_key in sorted(self.layers)]
-            with _full_timing_range("hiermoe_forward_reuse_cover_plan"):
-                committed: list[str] = []
-                for round_index in range(self._forward_reuse_cover_rounds):
-                    committed.extend(
-                        self._plan_forward_reuse_cover_layers(
-                            layers,
-                            int(step) + round_index,
-                        )
-                    )
-            self.latest_pair = ",".join(committed) if committed else "none"
-            return self.latest_pair
         if self.fixed_pipeline_overlap:
             if any(bool((self._layer_layout(layer) < 0).any().item()) for layer in self.layers.values()):
                 layers = [self.layers[layer_key] for layer_key in self.layers]
                 committed = self._plan_historical_layers(layers, int(step))
                 self.latest_pair = ",".join(committed) if committed else "none"
                 return self.latest_pair
-            if self._npu_layer_owner_blocking:
-                layers = [self.layers[layer_key] for layer_key in self._pipeline_layer_order or tuple(self.layers)]
-                committed = self._plan_npu_layer_owner_layers(layers, int(step))
-                self.latest_pair = ",".join(committed) if committed else "none"
-                return self.latest_pair
-            if self._uses_cpu_process_planner():
-                return self._collect_cpu_process_plan(int(step))
-            if self._cpu_planner_mode != "off":
-                return self._collect_cpu_batched_plan(int(step))
             return self._collect_pipeline_plans(int(step))
 
         if (
@@ -853,42 +714,19 @@ class ExpertSwapManager(
             self.latest_pair = "none"
             return self.latest_pair
 
-        if self.expert_swap_selector == "legacy_batched" and self.expert_swap_max_pairs_per_layer <= 0:
+        self.prepare_calibrations(step)
+        minimum_step = 0 if self.expert_swap_selector == "hiermoe_greedy_cover_p1" else 1
+        if int(step) < minimum_step or self.expert_swap_interval <= 0 or int(step) % self.expert_swap_interval != 0:
             self.latest_pair = "none"
             return self.latest_pair
-
-        if self.expert_swap_selector == "hiermoe_exact_p1":
-            if int(step) <= 0 or self.expert_swap_interval <= 0 or int(step) % self.expert_swap_interval != 0:
-                self.latest_pair = "none"
-                return self.latest_pair
-            with _full_timing_range("hiermoe_exact_p1_plan"):
-                layers = [self.layers[layer_key] for layer_key in sorted(self.layers)]
-                committed = self._plan_exact_single_swap_layers(layers, int(step))
-        elif self.expert_swap_selector == "legacy_batched":
-            if int(step) <= 0 or self.expert_swap_interval <= 0 or int(step) % self.expert_swap_interval != 0:
-                self.latest_pair = "none"
-                return self.latest_pair
-            with _full_timing_range("hiermoe_legacy_batched_plan"):
-                layers = [self.layers[layer_key] for layer_key in sorted(self.layers)]
-                committed = self._plan_legacy_batched_layers(layers)
-        else:
-            self.prepare_calibrations(step)
-            minimum_step = 0 if self.expert_swap_selector == "hiermoe_greedy_cover_p1" else 1
-            if (
-                int(step) < minimum_step
-                or self.expert_swap_interval <= 0
-                or int(step) % self.expert_swap_interval != 0
-            ):
-                self.latest_pair = "none"
-                return self.latest_pair
-            committed = []
-            with _full_timing_range("hiermoe_current_route_plan"):
-                layers = [self.layers[layer_key] for layer_key in sorted(self.layers)]
-                if self.expert_swap_selector == "hiermoe_greedy_cover_p1" and self.expert_swap_mode == "step":
-                    committed.extend(self._plan_historical_layers(layers, int(step)))
-                else:
-                    for layer in layers:
-                        committed.extend(self._plan_current_layer(layer, int(step)))
+        committed = []
+        with _full_timing_range("hiermoe_current_route_plan"):
+            layers = [self.layers[layer_key] for layer_key in sorted(self.layers)]
+            if self.expert_swap_selector == "hiermoe_greedy_cover_p1" and self.expert_swap_mode == "step":
+                committed.extend(self._plan_historical_layers(layers, int(step)))
+            else:
+                for layer in layers:
+                    committed.extend(self._plan_current_layer(layer, int(step)))
         self.latest_pair = ",".join(committed) if committed else "none"
         return self.latest_pair
 
@@ -921,11 +759,7 @@ class ExpertSwapManager(
         if layer.last_planned_step == int(step):
             return self.latest_pair
         layer.last_planned_step = int(step)
-        if self.expert_swap_selector == "hiermoe_exact_p1":
-            with _full_timing_range("hiermoe_exact_p1_layer_plan"):
-                committed = self._plan_exact_single_swap_layers([layer], int(step))
-        else:
-            with _full_timing_range("hiermoe_current_route_layer_plan"):
-                committed = self._plan_current_layer(layer, int(step))
+        with _full_timing_range("hiermoe_current_route_layer_plan"):
+            committed = self._plan_current_layer(layer, int(step))
         self.latest_pair = ",".join(committed) if committed else "none"
         return self.latest_pair

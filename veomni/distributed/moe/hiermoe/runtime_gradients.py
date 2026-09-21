@@ -16,26 +16,19 @@ from ....utils.device import get_torch_device
 from .core_planner import QuotaPolicyEntry
 from .runtime_settings import _full_timing_range
 from .runtime_tensors import (
-    _cover_slot_entries,
     _ep_global_rank,
     _existing_optimizer_state,
     _iter_leaf_optimizers,
     _local_tensor_view,
-    _zero_slot_entries,
 )
 from .runtime_types import (
     ExpertLayerState,
     _CoverTensorEntry,
-    _LayerSwapPlan,
     _PipelineGradResult,
-    _RedundantGradBucket,
-    _RedundantGradBucketItem,
     _ReplicaGradContribution,
     _ReplicaGradGroup,
     _ReplicaGradSchedule,
-    _SlotOpCandidate,
     _SlotStateItem,
-    _SwapTensorEntry,
 )
 
 
@@ -529,12 +522,6 @@ class GradientsMixin:
             items.extend((f"optimizer[{optimizer_index}].{state_name}", tensor) for state_name, tensor in ordered)
         return items
 
-    def _optimizer_state_slot_tensors_for_slot_op(
-        self,
-        param: torch.nn.Parameter,
-    ) -> list[torch.Tensor]:
-        return [tensor for _descriptor, tensor in self._optimizer_state_slot_items_for_slot_op(param)]
-
     def _slot_op_state_rows(
         self,
         layer: ExpertLayerState,
@@ -567,41 +554,6 @@ class GradientsMixin:
         src_local = int(src_slot) % int(num_local_experts)
         dst_local = int(dst_slot) % int(num_local_experts)
         return [_CoverTensorEntry(tensor, src_slot=src_local, dst_slot=dst_local) for tensor in tensors]
-
-    def _apply_slot_op_to_layout(self, slot_to_logical: torch.Tensor, op: _SlotOpCandidate) -> torch.Tensor:
-        updated = slot_to_logical.clone()
-        if op.kind == "swap":
-            updated[op.src_slot], updated[op.dst_slot] = updated[op.dst_slot].clone(), updated[op.src_slot].clone()
-        elif op.kind == "cover":
-            updated[op.dst_slot] = updated[op.src_slot].clone()
-        else:
-            raise ValueError(f"Unknown HierMoE slot op kind: {op.kind}")
-        return updated
-
-    def _slot_op_cover_entries(self, layer: ExpertLayerState, src_slot: int, dst_slot: int) -> list[_CoverTensorEntry]:
-        return self._slot_op_cover_entries_from_tensors(
-            self._slot_op_state_tensors(layer),
-            num_local_experts=layer.num_local_experts,
-            src_slot=src_slot,
-            dst_slot=dst_slot,
-        )
-
-    def _slot_op_swap_plan(self, layer_key: str, op: _SlotOpCandidate) -> _LayerSwapPlan:
-        layer = self.layers[layer_key]
-        lhs_rank, lhs_slot = divmod(int(op.src_slot), layer.num_local_experts)
-        rhs_rank, rhs_slot = divmod(int(op.dst_slot), layer.num_local_experts)
-        entries = [
-            _SwapTensorEntry(tensor, lhs_slot=lhs_slot, rhs_slot=rhs_slot)
-            for tensor in self._slot_op_state_tensors(layer)
-        ]
-        return _LayerSwapPlan(
-            layer_key=layer_key,
-            logical_lhs=int(op.src_slot),
-            logical_rhs=int(op.dst_slot),
-            lhs_rank=int(lhs_rank),
-            rhs_rank=int(rhs_rank),
-            entries=tuple(entries),
-        )
 
     def _refresh_layer_mapping_from_slots(
         self,
@@ -660,246 +612,6 @@ class GradientsMixin:
                 f"HierMoE owner slot {owner_slot} for logical expert {logical} is not in its copy group."
             )
         return owner_slot // layer.num_local_experts
-
-    @torch.no_grad()
-    def _commit_layer_slot_ops(
-        self,
-        layer_key: str,
-        ops: Iterable[_SlotOpCandidate],
-        *,
-        force_collective: bool = False,
-    ) -> list[str]:
-        layer = self.layers[layer_key]
-        if layer.slot_to_logical is None:
-            return []
-        committed: list[str] = []
-        for op in ops:
-            src_rank, src_local = divmod(int(op.src_slot), layer.num_local_experts)
-            dst_rank, dst_local = divmod(int(op.dst_slot), layer.num_local_experts)
-            if op.kind == "swap":
-                self._execute_swap_plans((self._slot_op_swap_plan(layer_key, op),), force_collective=force_collective)
-            elif op.kind == "cover":
-                entries = self._slot_op_cover_entries(layer, op.src_slot, op.dst_slot)
-                if int(layer.slot_to_logical[op.src_slot].item()) < 0:
-                    _zero_slot_entries(entries, dst_rank, self.ep_rank)
-                else:
-                    _cover_slot_entries(entries, src_rank, dst_rank, self.ep_rank, self.ep_group)
-            else:
-                raise ValueError(f"Unknown HierMoE slot op kind: {op.kind}")
-            layer.slot_to_logical = self._apply_slot_op_to_layout(layer.slot_to_logical, op)
-            layer.fixed_r2_layout = False
-            self._refresh_layer_mapping_from_slots(layer)
-            committed.append(f"{layer_key}:{op.format()}[{src_rank}:{src_local},{dst_rank}:{dst_local}]")
-        return committed
-
-    @torch.no_grad()
-    def _redundant_grad_buckets_for_group(
-        self,
-        params: Iterable[torch.nn.Parameter],
-        layer: ExpertLayerState,
-        logical_expert: int,
-        slots: list[int],
-    ) -> list[_RedundantGradBucket]:
-        owner_rank = self._owner_rank_for_copy_group(layer, logical_expert, slots)
-        local_slots = [
-            int(slot) % layer.num_local_experts
-            for slot in slots
-            if int(slot) // layer.num_local_experts == self.ep_rank
-        ]
-        if not local_slots:
-            return []
-
-        buckets: dict[
-            tuple[torch.device, torch.dtype],
-            list[tuple[torch.Tensor, tuple[int, ...], torch.Size, int, torch.Tensor]],
-        ] = defaultdict(list)
-        for param in params:
-            local_grad = self._local_grad_for_redundant_sync(param)
-            if local_grad is None:
-                continue
-            local_sum = local_grad.detach()[local_slots[0]].clone()
-            for local_slot in local_slots[1:]:
-                local_sum.add_(local_grad.detach()[local_slot])
-            flat_sum = local_sum.contiguous().view(-1)
-            buckets[(flat_sum.device, flat_sum.dtype)].append(
-                (local_grad, tuple(local_slots), local_sum.shape, int(flat_sum.numel()), flat_sum)
-            )
-        if not buckets:
-            return []
-
-        copy_ranks = tuple(sorted({int(slot) // layer.num_local_experts for slot in slots}))
-        grad_buckets: list[_RedundantGradBucket] = []
-        for bucket in buckets.values():
-            send_buffer = torch.cat([item[4] for item in bucket], dim=0) if len(bucket) > 1 else bucket[0][4]
-            items = tuple(
-                _RedundantGradBucketItem(
-                    local_grad=item[0],
-                    local_slots=item[1],
-                    shape=item[2],
-                    numel=item[3],
-                )
-                for item in bucket
-            )
-            grad_buckets.append(
-                _RedundantGradBucket(
-                    owner_rank=owner_rank,
-                    copy_ranks=copy_ranks,
-                    items=items,
-                    send_buffer=send_buffer,
-                )
-            )
-        return grad_buckets
-
-    @staticmethod
-    def _unpack_redundant_grad_bucket(buffer: torch.Tensor, bucket: _RedundantGradBucket) -> None:
-        offset = 0
-        for item in bucket.items:
-            synced = buffer[offset : offset + item.numel].view(item.shape)
-            for local_slot in item.local_slots:
-                item.local_grad.detach()[local_slot].copy_(synced)
-            offset += item.numel
-
-    def _sync_redundant_grad_bucket_wave(self, buckets: list[_RedundantGradBucket]) -> None:
-        if not buckets:
-            return
-        if self.ep_group is None or self.ep_size <= 1:
-            for bucket in buckets:
-                self._unpack_redundant_grad_bucket(bucket.send_buffer, bucket)
-            return
-
-        for bucket in buckets:
-            if self.ep_rank not in bucket.copy_ranks:
-                continue
-            if self.ep_rank == bucket.owner_rank:
-                accum_buffer = bucket.send_buffer.clone()
-                for src_rank in bucket.copy_ranks:
-                    if src_rank == bucket.owner_rank:
-                        continue
-                    recv_buffer = torch.empty_like(bucket.send_buffer)
-                    works = dist.batch_isend_irecv(
-                        [dist.P2POp(dist.irecv, recv_buffer, _ep_global_rank(self.ep_group, src_rank))]
-                    )
-                    for work in works:
-                        work.wait()
-                    accum_buffer.add_(recv_buffer)
-                bucket.accum_buffer = accum_buffer
-            else:
-                works = dist.batch_isend_irecv(
-                    [
-                        dist.P2POp(
-                            dist.isend,
-                            bucket.send_buffer,
-                            _ep_global_rank(self.ep_group, bucket.owner_rank),
-                        )
-                    ]
-                )
-                for work in works:
-                    work.wait()
-
-            if self.ep_rank == bucket.owner_rank:
-                if bucket.accum_buffer is None:
-                    raise RuntimeError("HierMoE redundant gradient sync owner has no accumulated buffer.")
-                scatter_ops: list[dist.P2POp] = []
-                for dst_rank in bucket.copy_ranks:
-                    if dst_rank == bucket.owner_rank:
-                        continue
-                    scatter_ops.append(
-                        dist.P2POp(dist.isend, bucket.accum_buffer, _ep_global_rank(self.ep_group, dst_rank))
-                    )
-                if scatter_ops:
-                    works = dist.batch_isend_irecv(scatter_ops)
-                    for work in works:
-                        work.wait()
-                self._unpack_redundant_grad_bucket(bucket.accum_buffer, bucket)
-            else:
-                recv_buffer = torch.empty_like(bucket.send_buffer)
-                works = dist.batch_isend_irecv(
-                    [
-                        dist.P2POp(
-                            dist.irecv,
-                            recv_buffer,
-                            _ep_global_rank(self.ep_group, bucket.owner_rank),
-                        )
-                    ]
-                )
-                for work in works:
-                    work.wait()
-                self._unpack_redundant_grad_bucket(recv_buffer, bucket)
-
-    @torch.no_grad()
-    def _sync_redundant_grads_for_params_blocking(
-        self,
-        params: Iterable[torch.nn.Parameter],
-        layer: ExpertLayerState,
-        logical_expert: int,
-        slots: list[int],
-    ) -> None:
-        owner_rank = self._owner_rank_for_copy_group(layer, logical_expert, slots)
-        local_slots = [
-            int(slot) % layer.num_local_experts
-            for slot in slots
-            if int(slot) // layer.num_local_experts == self.ep_rank
-        ]
-        if not local_slots:
-            return
-
-        buckets: dict[
-            tuple[torch.device, torch.dtype],
-            list[tuple[torch.Tensor, tuple[int, ...], torch.Size, int, torch.Tensor]],
-        ] = defaultdict(list)
-        for param in params:
-            local_grad = self._local_grad_for_redundant_sync(param)
-            if local_grad is None:
-                continue
-            local_sum = local_grad.detach()[local_slots[0]].clone()
-            for local_slot in local_slots[1:]:
-                local_sum.add_(local_grad.detach()[local_slot])
-            flat_sum = local_sum.contiguous().view(-1)
-            buckets[(flat_sum.device, flat_sum.dtype)].append(
-                (local_grad, tuple(local_slots), local_sum.shape, int(flat_sum.numel()), flat_sum)
-            )
-        if not buckets:
-            return
-
-        def _unpack_synced(
-            buffer: torch.Tensor,
-            bucket: list[tuple[torch.Tensor, tuple[int, ...], torch.Size, int, torch.Tensor]],
-        ) -> None:
-            offset = 0
-            for local_grad, bucket_local_slots, shape, numel, _flat_sum in bucket:
-                synced = buffer[offset : offset + numel].view(shape)
-                for local_slot in bucket_local_slots:
-                    local_grad.detach()[local_slot].copy_(synced)
-                offset += numel
-
-        if self.ep_group is None or self.ep_size <= 1:
-            for bucket in buckets.values():
-                send_buffer = torch.cat([item[4] for item in bucket], dim=0) if len(bucket) > 1 else bucket[0][4]
-                _unpack_synced(send_buffer, bucket)
-            return
-
-        copy_ranks = sorted({int(slot) // layer.num_local_experts for slot in slots})
-        owner_global_rank = _ep_global_rank(self.ep_group, owner_rank)
-        for bucket in buckets.values():
-            send_buffer = torch.cat([item[4] for item in bucket], dim=0) if len(bucket) > 1 else bucket[0][4]
-            if self.ep_rank == owner_rank:
-                accum = send_buffer.clone()
-                for src_rank in copy_ranks:
-                    if src_rank == owner_rank:
-                        continue
-                    recv_buffer = torch.empty_like(accum)
-                    dist.recv(recv_buffer, src=_ep_global_rank(self.ep_group, src_rank))
-                    accum.add_(recv_buffer)
-                for dst_rank in copy_ranks:
-                    if dst_rank == owner_rank:
-                        continue
-                    dist.send(accum, dst=_ep_global_rank(self.ep_group, dst_rank))
-                _unpack_synced(accum, bucket)
-            else:
-                dist.send(send_buffer, dst=owner_global_rank)
-                synced = torch.empty_like(send_buffer)
-                dist.recv(synced, src=owner_global_rank)
-                _unpack_synced(synced, bucket)
 
     def _replica_grad_schedule_for_layer(self, layer: ExpertLayerState) -> _ReplicaGradSchedule:
         cached = layer._replica_grad_schedule_cache

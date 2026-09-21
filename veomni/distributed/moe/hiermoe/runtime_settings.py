@@ -15,11 +15,9 @@
 from __future__ import annotations
 
 import os
-import time
 from contextlib import nullcontext
 
 import torch
-import torch.distributed as dist
 
 
 try:
@@ -57,17 +55,6 @@ def _env_float(name: str, default: float, *, minimum: float = 0.0) -> float:
     except ValueError:
         logger.warning("Invalid %s=%r; using default %s.", name, raw, default)
         return default
-
-
-def _env_optional_nonnegative_int(name: str) -> int | None:
-    raw = os.environ.get(name)
-    if raw is None:
-        return None
-    try:
-        return max(0, int(raw))
-    except ValueError:
-        logger.warning("Invalid %s=%r; ignoring the override.", name, raw)
-        return None
 
 
 def _env_candidate_shards(name: str) -> int:
@@ -120,7 +107,6 @@ _GREEDY_ADAPTIVE_TOPK_STRICT = _env_flag("VEOMNI_HIERMOE_GREEDY_ADAPTIVE_TOPK_ST
 _GREEDY_POST_SHORTLIST_COMPACT_PAIR = _env_flag("VEOMNI_HIERMOE_GREEDY_POST_SHORTLIST_COMPACT_PAIR")
 _GREEDY_EXACT_PRIMITIVE_MAX_ONLY = _env_flag("VEOMNI_HIERMOE_GREEDY_EXACT_PRIMITIVE_MAX_ONLY")
 _PIPELINE_STAGE_TIMING = _env_flag("VEOMNI_HIERMOE_PIPELINE_STAGE_TIMING")
-_HIERMOE_DIAG_PHASES = _env_flag("VEOMNI_HIERMOE_DIAG_PHASES")
 _PIPELINE_PREPARE_SUBSTAGES = (
     "planner_setup",
     "context",
@@ -212,16 +198,6 @@ def configure_placemoe_runtime(config: PlaceMoERuntimeConfig) -> None:
     _HOT_UPDATE_COMMUNICATION_MULTIPLIER = config.calibration.communication_multiplier
     _HOT_UPDATE_COMPUTE_MS_PER_ASSIGNMENT = config.calibration.compute_ms_per_assignment
     _HOT_UPDATE_COMPUTE_MULTIPLIER = config.calibration.compute_multiplier
-
-
-def _expert_swap_diag_phase(phase: str) -> None:
-    if not _HIERMOE_DIAG_PHASES:
-        return
-    rank = dist.get_rank() if dist.is_available() and dist.is_initialized() else -1
-    print(
-        f"HIERMOE_EXPERT_SWAP_DIAG rank={rank} phase={phase} monotonic={time.monotonic():.6f}",
-        flush=True,
-    )
 
 
 _ONLINE_FREEZE_COST_MODE = os.environ.get("VEOMNI_HIERMOE_ONLINE_FREEZE_COST_MODE", "off").strip().lower()

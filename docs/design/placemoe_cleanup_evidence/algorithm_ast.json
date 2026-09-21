@@ -1,0 +1,45 @@
+{
+  "core_planner.py": {
+    "unchanged": 46,
+    "changed": [],
+    "removed": [
+      "_pack_local_route_summary",
+      "build_quota_tensor_tables",
+      "build_route_summary",
+      "compress_local_route_payload"
+    ]
+  },
+  "planner.py": {
+    "unchanged": 51,
+    "changed": [
+      "CurrentRoutePlanner.__init__"
+    ],
+    "removed": [
+      "CurrentRoutePlanner._owner_replica_candidate_costs",
+      "CurrentRoutePlanner._rank_distances",
+      "CurrentRoutePlanner._replica_candidate_costs",
+      "CurrentRoutePlanner._where_cost",
+      "apply_placement_action",
+      "plan_routes_by_rank"
+    ]
+  },
+  "greedy_planner.py": {
+    "unchanged": 56,
+    "changed": [],
+    "removed": [
+      "GreedyCommunicationPlanner._communication_cost",
+      "GreedyCommunicationPlanner._score_layouts",
+      "_mapping_level_sizes"
+    ]
+  },
+  "statistical_scorer.py": {
+    "unchanged": 34,
+    "changed": [],
+    "removed": [
+      "prepare_forward_lut_cover_compact_statistics",
+      "score_forward_lut_cover_compact_statistics",
+      "score_forward_lut_move_compact_statistics",
+      "statistical_forward_lut_cover_local_deltas"
+    ]
+  }
+}

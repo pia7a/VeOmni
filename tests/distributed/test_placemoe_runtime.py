@@ -21,6 +21,7 @@ from types import SimpleNamespace
 
 import pytest
 import torch
+import torch.distributed as dist
 
 from placemoe import planner as placemoe_planner
 from placemoe import planner_config
@@ -415,7 +416,7 @@ def test_auto_calibration_rejects_inconsistent_runtime_models_before_commit(monk
             },
         ]
 
-    monkeypatch.setattr(expert_swap_module.dist, "all_gather_object", _all_gather_object)
+    monkeypatch.setattr(dist, "all_gather_object", _all_gather_object)
 
     with pytest.raises(RuntimeError, match="same runtime performance model"):
         manager.finalize_auto_calibration(trainer_step=15, local_timing_rows=[])
@@ -453,13 +454,13 @@ def test_auto_calibration_rolls_back_if_another_node_commit_fails(monkeypatch, t
 
     def _all_reduce(tensor, *, op, group):
         nonlocal reduce_count
-        assert op is expert_swap_module.dist.ReduceOp.MAX
+        assert op is dist.ReduceOp.MAX
         assert group is manager.ep_group
         reduce_count += 1
         tensor.fill_(1 if reduce_count == 2 else 0)
 
-    monkeypatch.setattr(expert_swap_module.dist, "all_gather_object", _all_gather_object)
-    monkeypatch.setattr(expert_swap_module.dist, "all_reduce", _all_reduce)
+    monkeypatch.setattr(dist, "all_gather_object", _all_gather_object)
+    monkeypatch.setattr(dist, "all_reduce", _all_reduce)
 
     with pytest.raises(RuntimeError, match="rolled back node outputs"):
         manager.finalize_auto_calibration(trainer_step=15, local_timing_rows=[])

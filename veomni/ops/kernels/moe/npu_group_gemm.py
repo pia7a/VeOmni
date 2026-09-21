@@ -237,14 +237,6 @@ def npu_ep_fused_moe_forward(
             start_event=region_start,
             end_event=region_end,
         )
-        if placement_manager is not None and layer_key is not None:
-            assert layer_key is not None
-            placement_manager.record_dispatch_statistics(
-                layer_key=layer_key,
-                step=state.current_step,
-                dispatch_context=hiermoe_ctx,
-            )
-
         if placement_already_applied and placement_manager is not None and layer_key is not None:
             placement_manager.wait_pending_layer_swap(layer_key)
         if fc1_1_2_weight is not None:

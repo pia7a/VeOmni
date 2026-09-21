@@ -19,7 +19,7 @@ import torch
 from torch import nn
 
 from placemoe import register_moe_model_adapter, resolve_moe_model_adapter
-from veomni.distributed.moe.hiermoe import runtime_calibration
+from veomni.distributed.moe.hiermoe import expert_swap, runtime_calibration
 from veomni.distributed.moe.hiermoe import runtime_settings as expert_swap_module
 from veomni.distributed.moe.hiermoe.expert_swap import ExpertSwapManager, expand_redundant_expert_slots
 from veomni.distributed.moe.hiermoe.perf_model import HierMoEPerfModel
@@ -257,7 +257,7 @@ def test_rank_only_replication_keeps_gradient_overlap_without_fixed_pipeline(mon
     ep_group = object()
     gradient_group = object()
     monkeypatch.setattr(
-        expert_swap_module,
+        expert_swap,
         "_create_expert_swap_process_group",
         lambda *_args, **_kwargs: gradient_group,
     )

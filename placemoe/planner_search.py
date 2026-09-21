@@ -360,7 +360,6 @@ def _plan_layer(
                                 ),
                                 "fixed_instance_nodes": instance_nodes,
                                 "fixed_initial_lut": community_mapping,
-                                "refine_fixed_initial_lut": True,
                             }
                         )
     build_candidate = partial(

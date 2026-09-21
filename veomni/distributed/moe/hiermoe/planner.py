@@ -167,22 +167,6 @@ class _ReplicaCandidateBatch:
     route_ranks_by_destination: torch.Tensor
 
 
-def apply_placement_action(layout: torch.Tensor, action: PlacementAction) -> torch.Tensor:
-    updated = layout.clone()
-    if action.kind == "swap":
-        updated[action.src_slot], updated[action.dst_slot] = (
-            updated[action.dst_slot].clone(),
-            updated[action.src_slot].clone(),
-        )
-    elif action.kind == "replica":
-        updated[action.dst_slot] = int(action.src_logical)
-    elif action.kind == "empty":
-        updated[action.dst_slot] = -1
-    else:  # pragma: no cover - Literal protects normal callers
-        raise ValueError(f"Unknown placement action kind: {action.kind!r}.")
-    return updated
-
-
 def _reduce_sum(tensor: torch.Tensor, reducer: ReduceSum | None) -> torch.Tensor:
     if reducer is None:
         return tensor
@@ -610,7 +594,6 @@ class CurrentRoutePlanner:
         self.last_replica_timing_ms: dict[str, float] = {}
         self._last_swap_collective_ms = 0.0
         self._last_replica_collective_ms = 0.0
-        self._rank_distance_cache: dict[str, torch.Tensor] = {}
         self._swap_pair_cache: dict[tuple[str, int], torch.Tensor] = {}
         self._device_event_pairs: dict[str, list[tuple[AcceleratorEvent | None, AcceleratorEvent | None]]] | None = (
             None
@@ -653,19 +636,6 @@ class CurrentRoutePlanner:
     @property
     def payload_bytes(self) -> int:
         return self.hidden_size * self.bytes_per_element
-
-    def _rank_distances(self, device: torch.device) -> torch.Tensor:
-        key = str(device)
-        cached = self._rank_distance_cache.get(key)
-        if cached is not None:
-            return cached
-        ranks = torch.arange(self.ep_size, dtype=torch.long, device=device)
-        destinations = ranks.view(1, 1, 1, self.ep_size).expand(1, self.ep_size, 1, -1)
-        distances = _hierarchy_distance(ranks, destinations, self.hierarchy.group_sizes).view(
-            self.ep_size, self.ep_size
-        )
-        self._rank_distance_cache[key] = distances
-        return distances
 
     def _communication_costs(self, base_counts: Sequence[torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
         rank_counts = base_counts[-1]
@@ -1602,152 +1572,6 @@ class CurrentRoutePlanner:
         )
         stats.assignment_counts = candidates.assignment_counts.index_select(0, best_index.view(1)).squeeze(0)
 
-    def _owner_replica_candidate_costs(
-        self,
-        selected: torch.Tensor,
-        owner_slots: torch.Tensor,
-        source_ranks: torch.Tensor,
-        logical_experts: torch.Tensor,
-        destination_slots: torch.Tensor,
-        *,
-        token_ordinals: torch.Tensor | None = None,
-        step: int,
-        layer_seed: int,
-    ) -> _TensorCost:
-        started = time.perf_counter()
-        num_tokens = selected.shape[0]
-        owner_ranks = torch.div(owner_slots, self.slots_per_rank, rounding_mode="floor")
-        routed_ranks = owner_ranks.index_select(0, selected.reshape(-1)).view_as(selected)
-        base_counts, base_assignment = self._local_rank_stats(routed_ranks.unsqueeze(0))
-        base_ms = (time.perf_counter() - started) * 1000.0
-
-        present = torch.zeros((owner_slots.numel(),), dtype=torch.bool, device=selected.device)
-        present.scatter_(0, logical_experts, True)
-        unique_logicals = torch.nonzero(present, as_tuple=False).flatten()
-        logical_to_unique = torch.zeros_like(owner_slots)
-        logical_to_unique.scatter_(
-            0,
-            unique_logicals,
-            torch.arange(unique_logicals.numel(), dtype=torch.long, device=selected.device),
-        )
-        candidate_to_unique = logical_to_unique.index_select(0, logical_experts)
-        unique_owner_ranks = owner_ranks.index_select(0, unique_logicals)
-        destination_ranks = torch.arange(self.ep_size, dtype=torch.long, device=selected.device)
-        rank_distances = self._rank_distances(selected.device)
-
-        owner_rank_counts = torch.zeros((num_tokens, self.ep_size), dtype=torch.long, device=selected.device)
-        owner_rank_counts.scatter_add_(1, routed_ranks, torch.ones_like(routed_ranks))
-        expert_hits = torch.zeros((num_tokens, owner_slots.numel()), dtype=torch.bool, device=selected.device)
-        expert_hits.scatter_(1, selected, True)
-        unique_expert_hits = expert_hits.index_select(1, unique_logicals)
-
-        owner_preferred = owner_rank_counts.index_select(1, unique_owner_ranks) > 1
-        destination_preferred = owner_rank_counts > 0
-        same_preference = owner_preferred.unsqueeze(-1) == destination_preferred.unsqueeze(1)
-        destination_distance = rank_distances[source_ranks.view(-1, 1), destination_ranks.view(1, -1)].unsqueeze(1)
-        owner_distance = rank_distances[source_ranks.view(-1, 1), unique_owner_ranks.view(1, -1)].unsqueeze(-1)
-        same_distance = destination_distance == owner_distance
-        route_hashes = _route_hash(
-            unique_logicals.view(1, -1).expand(num_tokens, -1),
-            token_ordinals=token_ordinals,
-            step=step,
-            layer_seed=layer_seed,
-        )
-        destination_tie_position = (destination_ranks.view(1, 1, -1) > unique_owner_ranks.view(1, -1, 1)).to(
-            torch.long
-        )
-        choose_destination_tie = torch.remainder(route_hashes.unsqueeze(-1), 2) == destination_tie_position
-        move = unique_expert_hits.unsqueeze(-1) & (
-            (destination_preferred.unsqueeze(1) & ~owner_preferred.unsqueeze(-1))
-            | (same_preference & (destination_distance < owner_distance))
-            | (same_preference & same_distance & choose_destination_tie)
-        )
-        moved_by_unique_rank = move.to(torch.float32).sum(dim=0)
-        index_ms = (time.perf_counter() - started) * 1000.0 - base_ms
-
-        candidate_ranks = torch.div(destination_slots, self.slots_per_rank, rounding_mode="floor")
-        moved = moved_by_unique_rank[candidate_to_unique, candidate_ranks]
-        candidate_assignment = base_assignment.expand(logical_experts.shape[0], -1).clone()
-        candidate_owner_ranks = owner_ranks.index_select(0, logical_experts)
-        candidate_assignment.scatter_add_(1, candidate_owner_ranks.view(-1, 1), -moved.view(-1, 1))
-        candidate_assignment.scatter_add_(1, candidate_ranks.view(-1, 1), moved.view(-1, 1))
-
-        level_sizes = tuple(
-            int(size) for size in self.hierarchy.group_sizes[: max(0, self.hierarchy.selected_dim - 1)]
-        ) + (1,)
-        candidate_level_counts: list[torch.Tensor] = []
-        for level, size in enumerate(level_sizes):
-            routed_groups = torch.div(routed_ranks, size, rounding_mode="floor")
-            destination_groups = torch.div(destination_ranks, size, rounding_mode="floor")
-            num_groups = self.ep_size // size
-            token_group_counts = torch.zeros((num_tokens, num_groups), dtype=torch.long, device=selected.device)
-            token_group_counts.scatter_add_(1, routed_groups, torch.ones_like(routed_groups))
-            unique_owner_groups = torch.div(unique_owner_ranks, size, rounding_mode="floor")
-            owner_group_counts = token_group_counts.index_select(1, unique_owner_groups)
-            destination_group_counts = token_group_counts.index_select(1, destination_groups)
-            different_group = unique_owner_groups.view(1, -1, 1) != destination_groups.view(1, 1, -1)
-            remove = move & different_group & (owner_group_counts.unsqueeze(-1) == 1)
-            add = move & different_group & (destination_group_counts.unsqueeze(1) == 0)
-            removed_by_unique_rank = remove.to(torch.float32).sum(dim=0)
-            added_by_unique_rank = add.to(torch.float32).sum(dim=0)
-            removed = removed_by_unique_rank[candidate_to_unique, candidate_ranks]
-            added = added_by_unique_rank[candidate_to_unique, candidate_ranks]
-            counts = base_counts[level].expand(logical_experts.shape[0], -1).clone()
-            candidate_owner_groups = torch.div(candidate_owner_ranks, size, rounding_mode="floor")
-            candidate_destination_groups = torch.div(candidate_ranks, size, rounding_mode="floor")
-            counts.scatter_add_(1, candidate_owner_groups.view(-1, 1), -removed.view(-1, 1))
-            counts.scatter_add_(1, candidate_destination_groups.view(-1, 1), added.view(-1, 1))
-            candidate_level_counts.append(counts)
-        candidate_ms = (time.perf_counter() - started) * 1000.0 - base_ms - index_ms
-        result = self._cost_from_local_stats(candidate_level_counts, candidate_assignment)
-        collective_ms = (time.perf_counter() - started) * 1000.0 - base_ms - index_ms - candidate_ms
-        self.last_replica_timing_ms = {
-            "base": base_ms,
-            "index": index_ms,
-            "candidate": candidate_ms,
-            "collective": collective_ms,
-        }
-        return result
-
-    def _replica_candidate_costs(
-        self,
-        selected: torch.Tensor,
-        layout: torch.Tensor,
-        owner_slots: torch.Tensor,
-        source_ranks: torch.Tensor,
-        logical_experts: torch.Tensor,
-        destination_slots: torch.Tensor,
-        *,
-        token_ordinals: torch.Tensor | None = None,
-        step: int,
-        layer_seed: int,
-        max_copies: int,
-        owner_only_layout: bool = False,
-    ) -> _TensorCost:
-        if owner_only_layout:
-            return self._owner_replica_candidate_costs(
-                selected,
-                owner_slots,
-                source_ranks,
-                logical_experts,
-                destination_slots,
-                token_ordinals=token_ordinals,
-                step=step,
-                layer_seed=layer_seed,
-            )
-        candidate_layouts = layout.unsqueeze(0).expand(logical_experts.shape[0], -1).clone()
-        candidate_layouts.scatter_(1, destination_slots.unsqueeze(1), logical_experts.unsqueeze(1))
-        return self._score_layouts(
-            selected,
-            candidate_layouts,
-            owner_slots,
-            source_ranks,
-            token_ordinals=token_ordinals,
-            step=step,
-            layer_seed=layer_seed,
-            max_copies=max_copies,
-        )
-
     @staticmethod
     def _index_cost(cost: _TensorCost, index: torch.Tensor) -> _TensorCost:
         selected = index.reshape(1)
@@ -1758,21 +1582,6 @@ class CurrentRoutePlanner:
             peak_communication_rank=cost.peak_communication_rank.index_select(0, selected),
             peak_compute_rank=cost.peak_compute_rank.index_select(0, selected),
             selected_dim=cost.selected_dim.index_select(0, selected),
-        )
-
-    @staticmethod
-    def _where_cost(condition: torch.Tensor, accepted: _TensorCost, rejected: _TensorCost) -> _TensorCost:
-        return _TensorCost(
-            communication=torch.where(condition, accepted.communication, rejected.communication),
-            compute=torch.where(condition, accepted.compute, rejected.compute),
-            communication_model_units=torch.where(
-                condition, accepted.communication_model_units, rejected.communication_model_units
-            ),
-            peak_communication_rank=torch.where(
-                condition, accepted.peak_communication_rank, rejected.peak_communication_rank
-            ),
-            peak_compute_rank=torch.where(condition, accepted.peak_compute_rank, rejected.peak_compute_rank),
-            selected_dim=torch.where(condition, accepted.selected_dim, rejected.selected_dim),
         )
 
     @staticmethod
@@ -2162,60 +1971,6 @@ class CurrentRoutePlanner:
             finalization_ms=finalization_ms,
             device_timing_ms=device_timing_ms,
         )
-
-
-def plan_routes_by_rank(
-    routes_by_rank: Sequence[torch.Tensor],
-    slot_to_logical: torch.Tensor,
-    owner_slots: torch.Tensor,
-    *,
-    hierarchy: Hierarchy,
-    perf_model: HierMoEPerfModel,
-    hidden_size: int,
-    bytes_per_element: int,
-    slots_per_rank: int,
-    max_swaps: int,
-    max_replicas: int,
-    communication_scale: float = 1.0,
-    forward_compute_per_assignment: float = 0.0,
-    step: int = 0,
-    layer_seed: int = 0,
-) -> PlacementPlan:
-    """Replay a distributed route snapshot in one process."""
-
-    if not routes_by_rank:
-        raise ValueError("routes_by_rank must not be empty.")
-    device = routes_by_rank[0].device
-    routes = torch.cat([route.to(device=device, dtype=torch.long) for route in routes_by_rank], dim=0)
-    sources = torch.cat(
-        [
-            torch.full((route.shape[0],), rank, dtype=torch.long, device=device)
-            for rank, route in enumerate(routes_by_rank)
-        ]
-    )
-    token_ordinals = torch.cat(
-        [torch.arange(route.shape[0], dtype=torch.long, device=device) for route in routes_by_rank]
-    )
-    planner = CurrentRoutePlanner(
-        hierarchy=hierarchy,
-        perf_model=perf_model,
-        hidden_size=hidden_size,
-        bytes_per_element=bytes_per_element,
-        slots_per_rank=slots_per_rank,
-        communication_scale=communication_scale,
-        forward_compute_per_assignment=forward_compute_per_assignment,
-    )
-    return planner.plan(
-        routes,
-        slot_to_logical,
-        owner_slots,
-        source_ranks=sources,
-        max_swaps=max_swaps,
-        max_replicas=max_replicas,
-        token_ordinals=token_ordinals,
-        step=step,
-        layer_seed=layer_seed,
-    )
 
 
 def speedup(baseline: float, current: float) -> float:

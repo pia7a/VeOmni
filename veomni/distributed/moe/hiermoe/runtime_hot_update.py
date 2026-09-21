@@ -469,7 +469,6 @@ class HotUpdateMixin:
         layer.pending_physical_routes = None
         layer.pending_route_data_ptr = 0
         layer.latest_physical_routes = None
-        layer.latest_forward_traffic_endpoint_statistics = None
         self._refresh_layer_mapping_from_slots(layer, owners)
         layer.source_logical_to_physical = source_lut.clone()
         layer._device_source_mapping_cache.clear()
@@ -490,7 +489,6 @@ class HotUpdateMixin:
         layer.pending_physical_routes = None
         layer.pending_route_data_ptr = 0
         layer.latest_physical_routes = None
-        layer.latest_forward_traffic_endpoint_statistics = None
         layer.source_logical_to_physical = source_lut.clone()
         layer._device_source_mapping_cache.clear()
         layer.placement_version += int(changed)

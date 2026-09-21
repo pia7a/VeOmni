@@ -124,18 +124,6 @@ def _reduce_sum(
     return reduced if result is None else result
 
 
-def _mapping_level_sizes(num_ranks: int, hierarchy_group_sizes: Sequence[int]) -> tuple[int, ...]:
-    coarse_levels = sorted(
-        {
-            int(group_size)
-            for group_size in hierarchy_group_sizes
-            if 1 < int(group_size) < int(num_ranks) and num_ranks % int(group_size) == 0
-        },
-        reverse=True,
-    )
-    return (*coarse_levels, 1)
-
-
 def assign_tokens_to_copies_greedy(
     selected_experts: torch.Tensor,
     slot_to_logical: torch.Tensor,
@@ -529,10 +517,6 @@ class GreedyCommunicationPlanner(TrafficAccounting):
             per_dim.argmax(dim=1) + 1,
         )
 
-    def _communication_cost(self, packed_counts: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        communication, _units, peak_rank, selected_dim = self._communication_cost_details(packed_counts)
-        return communication, peak_rank, selected_dim
-
     def _compute_cost(
         self,
         assignment_counts: torch.Tensor | None,
@@ -577,65 +561,6 @@ class GreedyCommunicationPlanner(TrafficAccounting):
         updates = torch.ones_like(ranks, dtype=torch.float32)
         counts.scatter_add_(1, ranks.reshape(ranks.shape[0], -1), updates.reshape(ranks.shape[0], -1))
         return counts
-
-    def _score_layouts(
-        self,
-        selected: torch.Tensor,
-        layouts: torch.Tensor,
-        *,
-        source_ranks: torch.Tensor,
-        token_ordinals: torch.Tensor,
-        step: int,
-        layer_seed: int,
-        num_experts: int,
-    ) -> _ScoredLayouts:
-        local_rows: list[torch.Tensor] = []
-        local_assignments: list[torch.Tensor] = []
-        baseline_physical: torch.Tensor | None = None
-        for start in range(0, layouts.shape[0], self.candidate_chunk_size):
-            physical = assign_tokens_to_copies_greedy(
-                selected,
-                layouts[start : start + self.candidate_chunk_size],
-                slots_per_rank=self.slots_per_rank,
-                source_ranks=source_ranks,
-                hierarchy_group_sizes=self.hierarchy.group_sizes,
-                num_experts=num_experts,
-                token_ordinals=token_ordinals,
-                step=step,
-                layer_seed=layer_seed,
-                max_copies=self.max_copies,
-            )
-            if start == 0:
-                baseline_physical = physical[0].clone()
-            local_rows.append(self._local_packed_counts(physical))
-            if self.forward_compute_per_assignment > 0.0:
-                local_assignments.append(self._local_assignment_counts(physical))
-        assert baseline_physical is not None
-        local_counts = torch.cat(local_rows, dim=0)
-        assignment_counts = torch.cat(local_assignments, dim=0) if local_assignments else None
-        if assignment_counts is None:
-            global_counts = _reduce_sum(local_counts, self.reducer)
-            communication, compute, units, peak_rank, peak_compute_rank, selected_dim = self._cost_details(
-                global_counts,
-                None,
-            )
-        else:
-            combined = _reduce_sum(torch.cat((local_counts, assignment_counts), dim=1), self.reducer)
-            global_counts = combined[:, : local_counts.shape[1]]
-            global_assignments = combined[:, local_counts.shape[1] :]
-            communication, compute, units, peak_rank, peak_compute_rank, selected_dim = self._cost_details(
-                global_counts,
-                global_assignments,
-            )
-        return _ScoredLayouts(
-            communication=communication,
-            compute=compute,
-            communication_model_units=units,
-            peak_rank=peak_rank,
-            peak_compute_rank=peak_compute_rank,
-            selected_dim=selected_dim,
-            baseline_physical_routes=baseline_physical,
-        )
 
     def _use_sharded_candidate_collective(self, device: torch.device) -> bool:
         if self.process_group is None or not dist.is_initialized() or self.ep_size <= 1:
