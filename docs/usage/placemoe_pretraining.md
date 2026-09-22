@@ -368,11 +368,21 @@ capacities, and calibration rather than model-specific modules.
   FSDP2 CPU offload.
 - A mapping-only schedule needs an initial layout containing useful replicas;
   it cannot create copies by itself.
-- The legacy `VEOMNI_PLACEMOE_CONFIG` and `VEOMNI_HIERMOE_*` controls remain for
-  archived launchers and paper reproduction only. File-based legacy input also
-  requires `VEOMNI_PLACEMOE_USE_LEGACY_CONFIG=1`; otherwise the inline PlaceMoE
-  block is used. The legacy `config_path` input cannot be mixed with inline
-  fields.
+- Production runtime supports step mode with zero legacy swap/replica search
+  budgets. PlaceMoE hot updates own layout and mapping planning. Historical
+  CurrentRoute/CoRe/Greedy search, ablation action replay, fixed-R2 and online-freeze
+  modes are removed; retired environment switches fail explicitly.
+- Initial artifacts use schema-2 preloaded layouts. Checkpoints with nonempty
+  historical quota policies are rejected. Activation-checkpoint physical-route
+  recomputation remains supported.
+- `calibrate-model` remains a supported production command and launches its short
+  training run with dedicated internal calibration controls.
+- File configuration still requires `VEOMNI_PLACEMOE_USE_LEGACY_CONFIG=1` and cannot
+  mix `config_path` with inline fields; it does not re-enable retired runtime modes.
+- Existing limitation: training checkpoints do not serialize the Source LUT, so
+  complete route restoration after hot updates is not guaranteed. This refactor
+  preserves that baseline behavior; layout metadata parity does not establish
+  complete routing-state restoration.
 - The optional golden parity test in
   `tests/distributed/test_placemoe_planner_parity.py` can compare generated
   plans with externally supplied EP32 and EP64 reference artifacts.

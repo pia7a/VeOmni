@@ -331,10 +331,16 @@ planner 不随模型改变，因为它只接收逻辑 routes、拓扑、容量�
   每 rank slot 数；
 - 副本放置当前要求 `ep_fsdp_size=1`，且不支持 FSDP2 CPU offload；
 - mapping-only 更新计划需要初始布局中已经存在有用的副本，不能自行创建副本；
-- 历史 `VEOMNI_PLACEMOE_CONFIG` 和 `VEOMNI_HIERMOE_*` 控制项仅为归档 launcher
-  和论文复现实验保留。文件形式的 legacy input 还要求
-  `VEOMNI_PLACEMOE_USE_LEGACY_CONFIG=1`，否则使用 inline PlaceMoE block。
-  legacy `config_path` 不能与 inline fields 混用；
+- 生产运行时只保留 step 模式、零旧 swap/replica 搜索预算；布局与映射更新由
+  PlaceMoE 热更新规划器负责。旧 CurrentRoute/CoRe/Greedy 搜索、ablation action replay、
+  fixed-R2 与 online-freeze 模式已删除；旧环境开关会明确报错。
+- 初始产物使用 PlaceMoE schema-2 的 preloaded 布局。包含非空旧 quota policy 的
+  checkpoint 已不再支持；activation checkpoint 的物理路由重计算仍保留。
+- `calibrate-model` 仍是受支持的生产命令，通过专用内部校准开关启动短训练。
+- 文件配置兼容入口仍要求 `VEOMNI_PLACEMOE_USE_LEGACY_CONFIG=1`，
+  `config_path` 不能与 inline fields 混用；它不重新启用已删除的运行时模式。
+- 已知既有缺口：训练 checkpoint 没有保存 Source LUT，不能保证热更新后完整恢复
+  路由映射。本轮重构保持该基线行为；布局元数据往返验证不代表完整路由恢复。
 - 可选的 golden parity test
   `tests/distributed/test_placemoe_planner_parity.py` 可使用外部提供的 EP32 和
   EP64 reference artifacts 对比生成的布局与映射。

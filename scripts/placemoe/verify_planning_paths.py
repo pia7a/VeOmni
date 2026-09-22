@@ -19,12 +19,9 @@ import torch
 from placemoe.planner_config import _configure_search, _parse_args, _validate_configuration
 from placemoe.planner_search import _plan_layer
 from veomni.distributed.moe.hiermoe import runtime_settings
-from veomni.distributed.moe.hiermoe.core_planner import CoReMoEPlanner
 from veomni.distributed.moe.hiermoe.expert_swap import ExpertSwapManager
-from veomni.distributed.moe.hiermoe.greedy_planner import GreedyCommunicationPlanner
 from veomni.distributed.moe.hiermoe.perf_model import HierMoEPerfModel
 from veomni.distributed.moe.hiermoe.placemoe import LayerPlan
-from veomni.distributed.moe.hiermoe.planner import CurrentRoutePlanner
 from veomni.distributed.moe.hiermoe.topology import Hierarchy
 
 
@@ -38,7 +35,7 @@ def normalize(value):
     return value
 
 
-def verify(root):
+def verify(root, *, production_only=False):
     generator = torch.Generator().manual_seed(20260922)
     samples = []
     for step in (1, 2):
@@ -109,6 +106,15 @@ def verify(root):
                 args.update_mode = "mapping"
                 _configure_search(args)
                 results[f"{key}/mapping"] = normalize(_plan_layer(0, args=args, capacity=capacity))
+    if production_only:
+        return results
+    # Historical scenarios remain available when this script runs against an
+    # older source checkout. Production-only mode compares the same 24 cases
+    # on both sides of a refactor without rewriting the historical reference.
+    from veomni.distributed.moe.hiermoe.core_planner import CoReMoEPlanner
+    from veomni.distributed.moe.hiermoe.greedy_planner import GreedyCommunicationPlanner
+    from veomni.distributed.moe.hiermoe.planner import CurrentRoutePlanner
+
     for planner_type in (CurrentRoutePlanner, CoReMoEPlanner, GreedyCommunicationPlanner):
         for groups in ((4,), (2, 4)):
             for replicas in (0, 2):
@@ -175,10 +181,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--reference", type=Path)
+    parser.add_argument("--production-only", action="store_true")
     args = parser.parse_args()
     torch.set_num_threads(1)
     with tempfile.TemporaryDirectory(prefix="placemoe-paths-") as directory:
-        result = verify(Path(directory))
+        result = verify(Path(directory), production_only=args.production_only)
     args.output.write_text(json.dumps(result, sort_keys=True) + "\n")
     if args.reference is not None and args.output.read_bytes() != args.reference.read_bytes():
         raise AssertionError("Planning outputs differ from the reference revision.")

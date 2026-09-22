@@ -6,7 +6,6 @@ import json
 import math
 import os
 import time
-import zlib
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -19,8 +18,8 @@ from . import runtime_settings as settings
 from .calibration_cost import CalibrationCostModel
 from .placemoe.runtime import PlaceMoECalibration
 from .runtime_settings import _env_flag, logger
-from .runtime_tensors import _local_tensor_view, _placement_group_boolean_consensus
-from .runtime_types import ExpertLayerState, _CostModelTiming, _PendingLayerTiming, _PlannerCalibration
+from .runtime_tensors import _local_tensor_view
+from .runtime_types import ExpertLayerState, _CostModelTiming
 
 
 class CalibrationMixin:
@@ -56,31 +55,9 @@ class CalibrationMixin:
         layer = self.layers.get(layer_key)
         if layer is None or not self.placement_planning_enabled() or not self.layer_calibration_enabled():
             return
-        if layer.slot_to_logical is None:
-            layout = torch.full((layer.num_experts,), -1, dtype=torch.long)
-            logical = torch.arange(layer.num_experts, dtype=torch.long)
-            layout.scatter_(0, layer.logical_to_physical.to(torch.long), logical)
-        else:
-            layout = layer.slot_to_logical.detach().cpu().clone()
-        timing = _PendingLayerTiming(
-            step=int(step),
-            selected_experts=selected_experts.detach(),
-            slot_to_logical=layout,
-            local_assignment_count=tokens_per_local_expert.detach().sum().to(dtype=torch.float32),
-            dispatch_start=dispatch_start,
-            dispatch_end=dispatch_end,
-            compute_start=compute_start,
-            compute_end=compute_end,
-            combine_start=combine_start,
-            combine_end=combine_end,
-        )
-        layer.pending_timing = timing
-        capture_cost_model_sample = (
-            self._cost_model_verify
-            and int(self._online_freeze_calibration_step)
-            <= int(step)
-            <= int(self._online_freeze_calibration_step) + int(self._cost_model_validation_steps)
-        ) or (self._online_freeze_cost_mode != "off" and int(step) == int(self._online_freeze_calibration_step))
+        capture_cost_model_sample = self._cost_model_verify and int(self._calibration_warmup_steps) <= int(
+            step
+        ) <= int(self._calibration_warmup_steps) + int(self._cost_model_validation_steps)
         if capture_cost_model_sample:
             physical_routes = layer.latest_physical_routes
             if physical_routes is None or physical_routes.shape != selected_experts.shape:
@@ -120,23 +97,6 @@ class CalibrationMixin:
                     device=counts.device, dtype=counts.dtype
                 )
                 layer.accumulated_tokens_per_local_expert.add_(counts)
-
-    @staticmethod
-    def _events_ready(timing: _PendingLayerTiming) -> bool:
-        for accelerator_event in (
-            timing.dispatch_end,
-            timing.compute_end,
-            timing.combine_end,
-        ):
-            event = accelerator_event.event
-            query = getattr(event, "query", None)
-            if callable(query):
-                try:
-                    if not query():
-                        return False
-                except Exception:
-                    return False
-        return True
 
     @staticmethod
     def _fit_nonnegative_compute_model(samples: list[tuple[float, float]]) -> tuple[float, float]:
@@ -589,7 +549,7 @@ class CalibrationMixin:
 
     @torch.no_grad()
     def _run_cost_model_verification(self, layers: Sequence[ExpertLayerState], step: int) -> str:
-        calibration_step = int(self._online_freeze_calibration_step)
+        calibration_step = int(self._calibration_warmup_steps)
         validation_end_step = calibration_step + int(self._cost_model_validation_steps)
         if int(step) < calibration_step or int(step) > validation_end_step:
             self.latest_pair = "none"
@@ -960,7 +920,7 @@ class CalibrationMixin:
 
         if not self._auto_calibration or self._auto_calibration_finalized:
             return
-        schedule_end = int(self._online_freeze_calibration_step) + int(self._cost_model_validation_steps) + 1
+        schedule_end = int(self._calibration_warmup_steps) + int(self._cost_model_validation_steps) + 1
         if int(trainer_step) < schedule_end:
             return
 
@@ -985,7 +945,7 @@ class CalibrationMixin:
 
             timing_rows = [row for rank_rows in gathered_rows for row in rank_rows]
             expected_timing_steps = range(
-                int(self._online_freeze_calibration_step) + 1,
+                int(self._calibration_warmup_steps) + 1,
                 schedule_end + 1,
             )
             phase_summary = summarize_phase_timing_rows(
@@ -994,8 +954,8 @@ class CalibrationMixin:
                 expected_steps=expected_timing_steps,
             )
             report_steps = range(
-                int(self._online_freeze_calibration_step),
-                int(self._online_freeze_calibration_step) + int(self._cost_model_validation_steps) + 1,
+                int(self._calibration_warmup_steps),
+                int(self._calibration_warmup_steps) + int(self._cost_model_validation_steps) + 1,
             )
             missing_reports = [step for step in report_steps if step not in self._cost_model_reports]
             if missing_reports:
@@ -1178,361 +1138,3 @@ class CalibrationMixin:
             validation["communication"]["mape_percent"],
             validation["joint"]["mape_percent"],
         )
-
-    @torch.no_grad()
-    def _prepare_online_freeze_calibrations(
-        self,
-        layers: Sequence[ExpertLayerState],
-        *,
-        step: int,
-        started: float,
-    ) -> None:
-        """Validate offline traffic coefficients and fit online GEMM cost."""
-
-        ordered_layers = sorted(layers, key=lambda value: value.key)
-        records = [
-            (layer, layer.pending_timing)
-            for layer in ordered_layers
-            if layer.pending_timing is not None
-            and layer.pending_timing.step == int(step)
-            and self._events_ready(layer.pending_timing)
-        ]
-        if len(records) != len(ordered_layers):
-            self._accumulate_metric(
-                "hiermoe/placement_calibration_ms",
-                (time.perf_counter() - started) * 1000.0,
-            )
-            return
-
-        has_full_samples = all(
-            any(int(timing.step) == int(step) for timing in layer.cost_model_timings) for layer in ordered_layers
-        )
-        communication_samples = 0
-        compute_samples: list[tuple[float, float]]
-        communication_diagnostics: dict[str, float] | None = None
-        compute_diagnostics: dict[str, float] | None = None
-        joint_diagnostics: dict[str, float] | None = None
-        traffic_scale = 1.0
-        traffic_constant = self._online_freeze_traffic_intercept_ms
-        traffic_predictors: list[float] = []
-        if has_full_samples:
-            observations = self._cost_model_step_observations(ordered_layers, step=int(step))
-            traffic_features = dict(observations["traffic_features"])
-            stage1 = [float(value) for value in traffic_features["stage1_payload_endpoint_bytes"]]
-            stage2 = [float(value) for value in traffic_features["stage2_payload_endpoint_bytes"]]
-            peak_assignments = [float(value) for value in observations["peak_assignments"]]
-            actual_communication = [float(value) for value in observations["actual_communication_ms"]]
-            route_coefficient = (
-                self._online_freeze_route_ms_per_assignment if self._online_freeze_cost_mode == "joint" else 0.0
-            )
-            traffic_predictors = [
-                self._online_freeze_inter_ms_per_byte * inter_bytes
-                + self._online_freeze_intra_ms_per_byte * intra_bytes
-                + route_coefficient * assignments
-                for inter_bytes, intra_bytes, assignments in zip(
-                    stage1,
-                    stage2,
-                    peak_assignments,
-                    strict=True,
-                )
-            ]
-            traffic_scale = self._fit_positive_through_origin(
-                [
-                    (predictor, max(0.0, actual - traffic_constant))
-                    for predictor, actual in zip(
-                        traffic_predictors,
-                        actual_communication,
-                        strict=True,
-                    )
-                ]
-            )
-            if traffic_scale <= 0.0:
-                traffic_scale = self._fit_positive_through_origin(
-                    list(zip(traffic_predictors, actual_communication, strict=True))
-                )
-                traffic_constant = 0.0
-            predicted_communication = [
-                traffic_scale * predictor + traffic_constant for predictor in traffic_predictors
-            ]
-            communication_diagnostics = self._cost_model_diagnostics(
-                actual_communication,
-                predicted_communication,
-            )
-            communication_samples = len(actual_communication)
-            compute_samples = [
-                (float(assignments), float(compute_ms))
-                for assignments, compute_ms in zip(
-                    observations["paired_assignments"],
-                    observations["paired_compute_ms"],
-                    strict=True,
-                )
-                if float(assignments) > 0.0
-            ]
-        else:
-            # Unit tests and legacy callers may provide one pending sample per
-            # layer without the full microbatch route capture.
-            compute_samples = []
-            for _layer, timing in records:
-                assert timing is not None
-                local_values = torch.stack(
-                    (
-                        timing.local_assignment_count.to(dtype=torch.float32),
-                        torch.tensor(
-                            timing.compute_start.elapsed_time(timing.compute_end),
-                            dtype=torch.float32,
-                            device=timing.local_assignment_count.device,
-                        ),
-                    )
-                )
-                if self.ep_group is not None and self.ep_size > 1:
-                    gathered_flat = torch.empty(
-                        (self.ep_size * int(local_values.numel()),),
-                        dtype=local_values.dtype,
-                        device=local_values.device,
-                    )
-                    dist.all_gather_into_tensor(gathered_flat, local_values, group=self.ep_group)
-                    gathered = gathered_flat.view(self.ep_size, int(local_values.numel()))
-                else:
-                    gathered = local_values.view(1, -1)
-                compute_samples.extend(
-                    (float(row[0].item()), float(row[1].item())) for row in gathered if float(row[0].item()) > 0.0
-                )
-
-        compute_slope, compute_constant = self._fit_nonnegative_compute_model(compute_samples)
-        if compute_slope <= 0.0:
-            compute_slope = self._fit_positive_through_origin(compute_samples)
-            compute_constant = 0.0
-        compute_diagnostics = self._cost_model_diagnostics(
-            [target for _assignments, target in compute_samples],
-            [compute_slope * assignments + compute_constant for assignments, _target in compute_samples],
-        )
-
-        if has_full_samples:
-            actual_communication = [float(value) for value in observations["actual_communication_ms"]]
-            actual_compute = [float(value) for value in observations["actual_compute_ms"]]
-            predicted_communication = [
-                traffic_scale * predictor + traffic_constant for predictor in traffic_predictors
-            ]
-            predicted_compute = [
-                compute_slope * float(assignments) + compute_constant
-                for assignments in observations["peak_assignments"]
-            ]
-            joint_diagnostics = self._cost_model_diagnostics(
-                [
-                    communication + compute
-                    for communication, compute in zip(actual_communication, actual_compute, strict=True)
-                ],
-                [
-                    communication + compute
-                    for communication, compute in zip(predicted_communication, predicted_compute, strict=True)
-                ],
-            )
-
-        if self._online_freeze_cost_mode == "joint":
-            planner_compute_slope = compute_slope
-            planner_compute_constant = compute_constant
-        else:
-            planner_compute_slope = 0.0
-            planner_compute_constant = 0.0
-
-        for layer, timing in records:
-            assert timing is not None
-            layer.planner_calibration = _PlannerCalibration(
-                source_step=timing.step,
-                communication_scale=traffic_scale,
-                forward_compute_per_assignment=planner_compute_slope,
-                forward_compute_constant=planner_compute_constant,
-            )
-            layer.pending_timing = None
-            layer.cost_model_timings = [sample for sample in layer.cost_model_timings if int(sample.step) != int(step)]
-
-        elapsed_ms = (time.perf_counter() - started) * 1000.0
-        self._accumulate_metric("hiermoe/placement_calibration_ms", elapsed_ms)
-        self._accumulate_metric("hiermoe/placement_calibrated_layers", len(records))
-        self._accumulate_metric("hiermoe/placement_calibration_communication_samples", communication_samples)
-        self._accumulate_metric("hiermoe/placement_calibration_compute_samples", len(compute_samples))
-        self._accumulate_metric("hiermoe/placement_traffic_online_scale", traffic_scale)
-        self._accumulate_metric("hiermoe/placement_traffic_online_constant_ms", traffic_constant)
-        if traffic_predictors:
-            self._accumulate_metric("hiermoe/placement_traffic_predictor_min_ms", min(traffic_predictors))
-            self._accumulate_metric("hiermoe/placement_traffic_predictor_max_ms", max(traffic_predictors))
-        self._accumulate_metric("hiermoe/placement_forward_compute_ms_per_assignment", compute_slope)
-        self._accumulate_metric("hiermoe/placement_forward_compute_constant_ms", compute_constant)
-        self._accumulate_metric(
-            "hiermoe/placement_full_compute_ms_per_assignment",
-            self._online_freeze_compute_ratio * compute_slope,
-        )
-        if communication_diagnostics is not None:
-            self._accumulate_metric(
-                "hiermoe/placement_calibration_communication_r2",
-                communication_diagnostics["r_squared"],
-            )
-            self._accumulate_metric(
-                "hiermoe/placement_calibration_communication_mape_percent",
-                communication_diagnostics["mape_percent"],
-            )
-        if compute_diagnostics is not None:
-            self._accumulate_metric(
-                "hiermoe/placement_calibration_compute_r2",
-                compute_diagnostics["r_squared"],
-            )
-            self._accumulate_metric(
-                "hiermoe/placement_calibration_compute_mape_percent",
-                compute_diagnostics["mape_percent"],
-            )
-        if joint_diagnostics is not None:
-            self._accumulate_metric(
-                "hiermoe/placement_calibration_joint_r2",
-                joint_diagnostics["r_squared"],
-            )
-            self._accumulate_metric(
-                "hiermoe/placement_calibration_joint_mape_percent",
-                joint_diagnostics["mape_percent"],
-            )
-        if communication_diagnostics is not None and communication_diagnostics["mape_percent"] > 5.0:
-            logger.warning_rank0(
-                "Online-freeze per-layer E2E traffic timings are too noisy for action-level validation: "
-                "MAPE=%.3f%% exceeds 5%%; "
-                f"R2={communication_diagnostics['r_squared']:.6f}, "
-                f"RMSE={communication_diagnostics['rmse_ms']:.3f} ms, "
-                f"max_abs={communication_diagnostics['max_abs_error_ms']:.3f} ms, "
-                f"online_scale={traffic_scale:.9g}, intercept={traffic_constant:.3f} ms, "
-                f"predictor_range="
-                f"[{min(traffic_predictors, default=0.0):.3f}, "
-                f"{max(traffic_predictors, default=0.0):.3f}] ms. "
-                "Keeping the offline multi-layout feature ratios and validating the frozen winner by E2E.",
-                communication_diagnostics["mape_percent"],
-            )
-
-    @torch.no_grad()
-    def prepare_calibrations(self, step: int) -> None:
-        started = time.perf_counter()
-        if self.expert_swap_selector == "hiermoe_greedy_cover_p1":
-            uncalibrated = [layer for layer in self.layers.values() if layer.planner_calibration is None]
-            if not self.layers:
-                return
-            consensus_device = _local_tensor_view(next(iter(self.layers.values())).primary_parameter).device
-            all_need_calibration, need_state_agrees = _placement_group_boolean_consensus(
-                bool(uncalibrated),
-                device=consensus_device,
-                ep_size=self.ep_size,
-                ep_group=self.ep_group,
-            )
-            if not need_state_agrees:
-                raise RuntimeError("HierMoE planner calibration state differs across the EP group.")
-            if not all_need_calibration:
-                return
-            local_ready = not any(
-                layer.pending_timing is None
-                or layer.pending_timing.step > int(step)
-                or not self._events_ready(layer.pending_timing)
-                for layer in uncalibrated
-            )
-            all_ready, _ready_state_agrees = _placement_group_boolean_consensus(
-                local_ready,
-                device=consensus_device,
-                ep_size=self.ep_size,
-                ep_group=self.ep_group,
-            )
-            if not all_ready:
-                self._accumulate_metric(
-                    "hiermoe/placement_calibration_ms",
-                    (time.perf_counter() - started) * 1000.0,
-                )
-                return
-            if self._online_freeze_cost_mode != "off":
-                self._prepare_online_freeze_calibrations(
-                    uncalibrated,
-                    step=int(step),
-                    started=started,
-                )
-                return
-        elif not self.layer_calibration_enabled():
-            return
-        updated = 0
-        greedy_records: list[tuple[ExpertLayerState, _PendingLayerTiming, float, float, float]] = []
-        for layer_key in sorted(self.layers):
-            layer = self.layers[layer_key]
-            timing = layer.pending_timing
-            if timing is None or timing.step > int(step) or not self._events_ready(timing):
-                continue
-            selected = timing.selected_experts
-            planner = self._planner_for_layer(
-                layer,
-                communication_scale=1.0,
-                forward_compute_per_assignment=1.0,
-                forward_compute_constant=0.0,
-            )
-            copy_slots, _copy_mask = layer.copy_slots_for_device(selected.device)
-            reference = planner.score_layout(
-                selected,
-                timing.slot_to_logical,
-                source_ranks=self.ep_rank,
-                owner_slots=layer.logical_to_physical,
-                step=timing.step,
-                layer_seed=zlib.crc32(layer.key.encode("utf-8")),
-                max_copies=int(copy_slots.shape[1]),
-            )
-            values = torch.tensor(
-                [
-                    timing.dispatch_start.elapsed_time(timing.dispatch_end)
-                    + timing.combine_start.elapsed_time(timing.combine_end),
-                    timing.compute_start.elapsed_time(timing.compute_end),
-                    timing.local_assignment_count,
-                ],
-                dtype=torch.float32,
-                device=selected.device,
-            )
-            if self.ep_group is not None and self.ep_size > 1:
-                dist.all_reduce(values, op=dist.ReduceOp.MAX, group=self.ep_group)
-            communication_units = reference.communication_model_units
-            peak_assignments = float(values[2].item())
-            forward_communication_ms = float(values[0].item())
-            forward_compute_ms = float(values[1].item())
-            if communication_units <= 0.0 or peak_assignments <= 0.0:
-                continue
-            if self.expert_swap_selector == "hiermoe_greedy_cover_p1":
-                # The greedy planner explicitly accounts for four communication
-                # phases. Normalize the measured forward dispatch+combine pair
-                # to the residual scale of one modeled phase.
-                communication_scale = forward_communication_ms / (2.0 * communication_units)
-            else:
-                # CurrentRoutePlanner.communication_model_units already includes
-                # all four communication phases.
-                communication_scale = (2.0 * forward_communication_ms) / communication_units
-            if not math.isfinite(communication_scale):
-                continue
-            if self.expert_swap_selector == "hiermoe_greedy_cover_p1":
-                greedy_records.append((layer, timing, communication_scale, peak_assignments, forward_compute_ms))
-                continue
-            compute_scale = forward_compute_ms / peak_assignments
-            if not math.isfinite(compute_scale):
-                continue
-            layer.planner_calibration = _PlannerCalibration(
-                source_step=timing.step,
-                communication_scale=communication_scale,
-                forward_compute_per_assignment=compute_scale,
-            )
-            layer.pending_timing = None
-            updated += 1
-        if greedy_records:
-            compute_scale, compute_constant = self._fit_nonnegative_compute_model(
-                [
-                    (peak_assignments, forward_compute_ms)
-                    for _, _, _, peak_assignments, forward_compute_ms in greedy_records
-                ]
-            )
-            for layer, timing, communication_scale, _peak_assignments, _forward_compute_ms in greedy_records:
-                layer.planner_calibration = _PlannerCalibration(
-                    source_step=timing.step,
-                    communication_scale=communication_scale,
-                    forward_compute_per_assignment=compute_scale,
-                    forward_compute_constant=compute_constant,
-                )
-                layer.pending_timing = None
-                updated += 1
-            self._accumulate_metric("hiermoe/placement_compute_ms_per_assignment", compute_scale)
-            self._accumulate_metric("hiermoe/placement_compute_constant_ms", compute_constant)
-        elapsed_ms = (time.perf_counter() - started) * 1000.0
-        self._accumulate_metric("hiermoe/placement_calibration_ms", elapsed_ms)
-        self._accumulate_metric("hiermoe/placement_calibrated_layers", updated)

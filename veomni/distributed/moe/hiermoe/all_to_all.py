@@ -161,13 +161,6 @@ class _BackwardA2AStart(torch.autograd.Function):
         event = _hiermoe_internal_event()
         if ctx.events is not None and event is not None:
             ctx.events[f"{ctx.key}_start"] = event
-        manager = _fixed_pipeline_manager(ctx.layer_key)
-        if manager is not None:
-            prepare_window = _BACKWARD_PREPARE_WINDOWS.get(ctx.key)
-            if prepare_window is not None:
-                manager.open_pipeline_planner_prepare_window(ctx.layer_key, prepare_window)
-            elif ctx.key == _BACKWARD_SCORE_WINDOW:
-                manager.open_pipeline_planner_score_window(ctx.layer_key)
         return grad, None, None, None
 
 
@@ -190,13 +183,6 @@ class _BackwardA2AEnd(torch.autograd.Function):
         event = _hiermoe_internal_event()
         if ctx.events is not None and event is not None:
             ctx.events[f"{ctx.key}_end"] = event
-        manager = _fixed_pipeline_manager(ctx.layer_key)
-        if manager is not None:
-            prepare_window = _BACKWARD_PREPARE_WINDOWS.get(ctx.key)
-            if prepare_window is not None:
-                manager.close_pipeline_planner_prepare_window(ctx.layer_key, prepare_window)
-            elif ctx.key == _BACKWARD_SCORE_WINDOW:
-                manager.close_pipeline_planner_score_window(ctx.layer_key)
         return grad, None, None, None
 
 
@@ -206,7 +192,7 @@ def _mark_backward_a2a_input(
     key: str,
     layer_key: str | None = None,
 ) -> torch.Tensor:
-    active = events is not None or _fixed_pipeline_manager(layer_key) is not None
+    active = events is not None
     return _BackwardA2AEnd.apply(tensor, events, key, layer_key) if active and tensor.requires_grad else tensor
 
 
@@ -216,22 +202,8 @@ def _mark_backward_a2a_output(
     key: str,
     layer_key: str | None = None,
 ) -> torch.Tensor:
-    active = events is not None or _fixed_pipeline_manager(layer_key) is not None
+    active = events is not None
     return _BackwardA2AStart.apply(tensor, events, key, layer_key) if active and tensor.requires_grad else tensor
-
-
-def _fixed_pipeline_manager(layer_key: str | None):
-    if layer_key is None:
-        return None
-    state = get_hiermoe_state()
-    if (
-        state is None
-        or not state.fixed_pipeline_overlap
-        or state.expert_swap_manager is None
-        or not state.expert_swap_manager.has_layer(layer_key)
-    ):
-        return None
-    return state.expert_swap_manager
 
 
 def _gradient_overlap_manager(layer_key: str | None):
@@ -244,28 +216,6 @@ def _gradient_overlap_manager(layer_key: str | None):
     return manager
 
 
-class _BeforeExpertBackward(torch.autograd.Function):
-    """Open the planner collective after combine backward and before expert GEMM."""
-
-    @staticmethod
-    def forward(ctx, tensor: torch.Tensor, layer_key: str) -> torch.Tensor:
-        ctx.layer_key = layer_key
-        return tensor
-
-    @staticmethod
-    def backward(ctx, grad: torch.Tensor) -> tuple[torch.Tensor, None]:
-        manager = _fixed_pipeline_manager(ctx.layer_key)
-        if manager is not None:
-            manager.open_pipeline_planner_collective_window(ctx.layer_key)
-        return grad, None
-
-
-def _mark_fixed_pipeline_expert_output(expert_outputs: torch.Tensor, layer_key: str | None) -> torch.Tensor:
-    if expert_outputs.requires_grad and _fixed_pipeline_manager(layer_key) is not None:
-        return _BeforeExpertBackward.apply(expert_outputs, layer_key)
-    return expert_outputs
-
-
 class _BeforeDispatchBackward(torch.autograd.Function):
     """Close the background-gradient window before dispatch backward A2A."""
 
@@ -276,9 +226,6 @@ class _BeforeDispatchBackward(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad: torch.Tensor) -> tuple[torch.Tensor, None]:
-        planner_manager = _fixed_pipeline_manager(ctx.layer_key)
-        if planner_manager is not None:
-            planner_manager.close_pipeline_planner_collective_window(ctx.layer_key)
         gradient_manager = _gradient_overlap_manager(ctx.layer_key)
         if gradient_manager is not None:
             gradient_manager.close_pipeline_gradient_window_before_dispatch(ctx.layer_key)
@@ -302,9 +249,7 @@ class _AfterDispatchBackward(torch.autograd.Function):
 
 
 def _mark_fixed_pipeline_dispatch_input(hidden_states: torch.Tensor, layer_key: str | None) -> torch.Tensor:
-    if hidden_states.requires_grad and (
-        _fixed_pipeline_manager(layer_key) is not None or _gradient_overlap_manager(layer_key) is not None
-    ):
+    if hidden_states.requires_grad and (_gradient_overlap_manager(layer_key) is not None):
         return _AfterDispatchBackward.apply(hidden_states, layer_key)
     return hidden_states
 
@@ -314,9 +259,7 @@ def _mark_fixed_pipeline_dispatch_output(
     layer_key: str | None,
 ) -> tuple[torch.Tensor, RankDedupDispatchContext, torch.Tensor]:
     hidden_states, ctx, tokens_per_local_expert = result
-    if hidden_states.requires_grad and (
-        _fixed_pipeline_manager(layer_key) is not None or _gradient_overlap_manager(layer_key) is not None
-    ):
+    if hidden_states.requires_grad and (_gradient_overlap_manager(layer_key) is not None):
         hidden_states = _BeforeDispatchBackward.apply(hidden_states, layer_key)
     return hidden_states, ctx, tokens_per_local_expert
 
@@ -1523,7 +1466,6 @@ def _hierarchical_dedup_dispatch(
     layer_key: str | None = None,
 ) -> tuple[torch.Tensor, RankDedupDispatchContext, torch.Tensor]:
     groups = _get_hierarchical_process_groups(ep_group, ep_size, ep_rank, intra_size)
-    pipeline_manager = _fixed_pipeline_manager(layer_key)
     internal_timing_events: dict[str, tuple[AcceleratorEvent, AcceleratorEvent]] | None = (
         {} if _HIERMOE_INTERNAL_TIMING else None
     )
@@ -1590,8 +1532,6 @@ def _hierarchical_dedup_dispatch(
         "backward_dispatch_stage1_a2a",
         layer_key,
     )
-    if pipeline_manager is not None:
-        pipeline_manager.open_pipeline_planner_prepare_window(layer_key, 0)
     stage1_a2a_start = _hiermoe_internal_event()
     stage1_recv_hidden, stage1_recv_meta_weights = _call_all_to_all_pair(
         groups.stage1_group,
@@ -1605,8 +1545,6 @@ def _hierarchical_dedup_dispatch(
     stage1_a2a_end = _hiermoe_internal_event()
     if stage1_a2a_start is not None and stage1_a2a_end is not None and internal_timing_events is not None:
         internal_timing_events["stage1_a2a"] = (stage1_a2a_start, stage1_a2a_end)
-    if pipeline_manager is not None:
-        pipeline_manager.close_pipeline_planner_prepare_window(layer_key, 0)
     stage1_recv_hidden = _mark_backward_a2a_output(
         stage1_recv_hidden,
         backward_internal_timing_events,
@@ -1684,8 +1622,6 @@ def _hierarchical_dedup_dispatch(
         "backward_dispatch_stage2_a2a",
         layer_key,
     )
-    if pipeline_manager is not None:
-        pipeline_manager.open_pipeline_planner_prepare_window(layer_key, 1)
     stage2_a2a_start = _hiermoe_internal_event()
     recv_hidden, recv_meta_weights = _call_all_to_all_pair(
         groups.stage2_group,
@@ -1699,8 +1635,6 @@ def _hierarchical_dedup_dispatch(
     stage2_a2a_end = _hiermoe_internal_event()
     if stage2_a2a_start is not None and stage2_a2a_end is not None and internal_timing_events is not None:
         internal_timing_events["stage2_a2a"] = (stage2_a2a_start, stage2_a2a_end)
-    if pipeline_manager is not None:
-        pipeline_manager.close_pipeline_planner_prepare_window(layer_key, 1)
     recv_hidden = _mark_backward_a2a_output(
         recv_hidden,
         backward_internal_timing_events,
@@ -2079,17 +2013,7 @@ def rank_dedup_dispatch(
                 f"train.hiermoe.expert_swap=true received unregistered MoE layer_key={layer_key!r}. "
                 "Expert Swap cannot safely map logical experts to physical placement for this layer."
             )
-        if state.fixed_pipeline_overlap:
-            state.expert_swap_manager.wait_pipeline_migration_before_layer(layer_key)
-        if state.expert_swap_mode == "layer" and state.layer_swap_forward_enabled and not placement_already_applied:
-            state.expert_swap_pair = state.expert_swap_manager.maybe_swap_layer_on_routing(
-                layer_key=layer_key,
-                selected_experts=selected_experts,
-                hidden_size=hidden_states.shape[-1],
-                bytes_per_element=hidden_states.element_size(),
-                step=state.current_step,
-            )
-        elif state.layer_swap_forward_enabled and not placement_already_applied:
+        if state.layer_swap_forward_enabled and not placement_already_applied:
             state.expert_swap_manager.record_routing(
                 layer_key=layer_key,
                 selected_experts=selected_experts,
@@ -2323,7 +2247,6 @@ def _aggregate_weighted_outputs(
 
 
 def _hierarchical_dedup_combine(expert_outputs: torch.Tensor, ctx: RankDedupDispatchContext) -> torch.Tensor:
-    pipeline_manager = _fixed_pipeline_manager(ctx.layer_key)
     internal_start = _hiermoe_internal_event()
     span = _begin_internal_span("hiermoe_combine_stage2_accum")
     try:
@@ -2360,8 +2283,6 @@ def _hierarchical_dedup_combine(expert_outputs: torch.Tensor, ctx: RankDedupDisp
         ctx.layer_key,
     )
     del stage2_accum
-    if pipeline_manager is not None:
-        pipeline_manager.open_pipeline_planner_prepare_window(ctx.layer_key, 2)
     combine_stage2_a2a_start = _hiermoe_internal_event()
     relay_partials = _call_all_to_all(
         ctx.stage2_group,
@@ -2371,8 +2292,6 @@ def _hierarchical_dedup_combine(expert_outputs: torch.Tensor, ctx: RankDedupDisp
     )
     del stage2_send
     combine_stage2_a2a_end = _hiermoe_internal_event()
-    if pipeline_manager is not None:
-        pipeline_manager.close_pipeline_planner_prepare_window(ctx.layer_key, 2)
     if (
         ctx.internal_timing_events is not None
         and combine_stage2_a2a_start is not None
@@ -2424,8 +2343,6 @@ def _hierarchical_dedup_combine(expert_outputs: torch.Tensor, ctx: RankDedupDisp
         ctx.layer_key,
     )
     del stage1_accum
-    if pipeline_manager is not None:
-        pipeline_manager.open_pipeline_planner_prepare_window(ctx.layer_key, 3)
     combine_stage1_a2a_start = _hiermoe_internal_event()
     partial_outputs = _call_all_to_all(
         ctx.stage1_group,
@@ -2435,8 +2352,6 @@ def _hierarchical_dedup_combine(expert_outputs: torch.Tensor, ctx: RankDedupDisp
     )
     del stage1_send
     combine_stage1_a2a_end = _hiermoe_internal_event()
-    if pipeline_manager is not None:
-        pipeline_manager.close_pipeline_planner_prepare_window(ctx.layer_key, 3)
     if (
         ctx.internal_timing_events is not None
         and combine_stage1_a2a_start is not None
@@ -2565,7 +2480,6 @@ def _hierarchical3d_dedup_combine(expert_outputs: torch.Tensor, ctx: RankDedupDi
 
 
 def rank_dedup_combine(expert_outputs: torch.Tensor, ctx: RankDedupDispatchContext) -> torch.Tensor:
-    expert_outputs = _mark_fixed_pipeline_expert_output(expert_outputs, ctx.layer_key)
     if ctx.mode == "hierarchical3d":
         return _hierarchical3d_dedup_combine(expert_outputs, ctx)
     if ctx.mode == "hierarchical":

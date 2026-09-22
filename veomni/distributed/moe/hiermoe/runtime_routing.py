@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import zlib
-from collections import defaultdict
 from typing import Any
 
 import torch
@@ -11,13 +10,11 @@ from torch import nn
 
 from placemoe.model_adapter import resolve_moe_model_adapter
 
-from . import runtime_settings as settings
 from .core_planner import assign_tokens_to_copies_with_quota
 from .greedy_planner import assign_tokens_to_copies_greedy
-from .planner import assign_tokens_to_copies, assign_tokens_to_mirrored_r2
-from .runtime_settings import logger
-from .runtime_tensors import _cover_grouped_slot_entries_atomic, _local_tensor_view
-from .runtime_types import ExpertLayerState, _canonical_physical_slots, _CoverTensorEntry, _initial_slot_to_logical
+from .planner import assign_tokens_to_copies
+from .runtime_tensors import _local_tensor_view
+from .runtime_types import ExpertLayerState, _canonical_physical_slots, _initial_slot_to_logical
 
 
 class RoutingMixin:
@@ -35,99 +32,13 @@ class RoutingMixin:
                 "and gate_proj/up_proj/down_proj experts are detected automatically; register a MoEModelAdapter for "
                 "another representation."
             )
-        self._normalize_ablation_layer_keys()
-        if settings._FIXED_R2_LAYOUT:
-            self.install_fixed_r2_layout()
-        if self._initial_layout_path or self._ablation_replay_mode == "static":
-            self._install_static_ablation_layout()
+        self._normalize_initial_layer_keys()
+        if self._initial_layout_path:
+            self._install_initial_layout()
         if self._pending_state is not None:
             self.load_state_dict(self._pending_state)
             self._pending_state = None
         self._configure_hot_update_training_affinity()
-
-    @torch.no_grad()
-    def install_fixed_r2_layout(self) -> None:
-        """Install the static two-copy experiment layout before the first forward."""
-
-        if self.ep_size <= 1 or self.ep_size % 2 != 0:
-            raise ValueError(f"Fixed R2 requires a positive even EP size, got {self.ep_size}.")
-        half_ep = self.ep_size // 2
-        incompatible_groups = tuple(
-            int(group_size)
-            for group_size in self.hierarchy.group_sizes
-            if 1 < int(group_size) < self.ep_size and half_ep % int(group_size) != 0
-        )
-        if incompatible_groups:
-            raise ValueError(
-                f"Fixed R2 requires every proper hierarchy group size to divide half EP={half_ep}, "
-                f"got {incompatible_groups}."
-            )
-        for key, layer in self.layers.items():
-            if not layer.slot_layout_enabled or layer.slot_to_logical is None:
-                raise ValueError(f"Fixed R2 requires reserved redundant slots for layer {key}.")
-            if layer.num_experts % half_ep != 0:
-                raise ValueError(f"Fixed R2 requires num_experts={layer.num_experts} divisible by half EP={half_ep}.")
-            expected_slots_per_rank = layer.num_experts // half_ep
-            if layer.num_local_experts != expected_slots_per_rank:
-                raise ValueError(
-                    f"Fixed R2 layer {key} requires {expected_slots_per_rank} slots per rank, "
-                    f"got {layer.num_local_experts}."
-                )
-
-            logical = torch.arange(layer.num_experts, dtype=torch.long)
-            rank_in_half = torch.div(logical, layer.num_local_experts, rounding_mode="floor")
-            local_slot = torch.remainder(logical, layer.num_local_experts)
-            first_slots = rank_in_half * layer.num_local_experts + local_slot
-            second_slots = (half_ep + rank_in_half) * layer.num_local_experts + local_slot
-            target_layout = torch.full((layer.num_physical_slots,), -1, dtype=torch.long)
-            target_layout[first_slots] = logical
-            target_layout[second_slots] = logical
-
-            current_layout = layer.slot_to_logical.detach().cpu()
-            if torch.equal(current_layout, target_layout):
-                self._refresh_layer_mapping_from_slots(layer, tuple(int(slot) for slot in first_slots.tolist()))
-                layer.fixed_r2_layout = True
-                continue
-
-            state_tensors = (
-                list(layer.expert_parameters) if self.optimizer is None else self._slot_op_state_tensors(layer)
-            )
-            grouped_entries: dict[tuple[int, int], list[_CoverTensorEntry]] = defaultdict(list)
-            for dst_slot, logical_expert in enumerate(target_layout.tolist()):
-                if int(current_layout[dst_slot].item()) == logical_expert:
-                    continue
-                source_slots = torch.nonzero(current_layout == logical_expert, as_tuple=False).flatten()
-                if source_slots.numel() == 0:
-                    raise RuntimeError(
-                        f"Fixed R2 cannot find source state for logical expert {logical_expert} in layer {key}."
-                    )
-                src_slot = int(source_slots[0].item())
-                src_rank = src_slot // layer.num_local_experts
-                dst_rank = dst_slot // layer.num_local_experts
-                grouped_entries[(src_rank, dst_rank)].extend(
-                    self._slot_op_cover_entries_from_tensors(
-                        state_tensors,
-                        num_local_experts=layer.num_local_experts,
-                        src_slot=src_slot,
-                        dst_slot=dst_slot,
-                    )
-                )
-
-            _cover_grouped_slot_entries_atomic(
-                grouped_entries,
-                self.ep_rank,
-                self.ep_size,
-                self.ep_group,
-                debug_validate=self.debug_validate,
-            )
-            layer.slot_to_logical = target_layout
-            self._refresh_layer_mapping_from_slots(layer, tuple(int(slot) for slot in first_slots.tolist()))
-            layer.active_quota_policy = ()
-            layer.pending_physical_routes = None
-            layer.pending_route_data_ptr = 0
-            layer.fixed_r2_layout = True
-
-        logger.info_rank0("HierMoE installed the fixed R2 layout for %s layer(s).", len(self.layers))
 
     def _is_expert_module(self, module: nn.Module) -> bool:
         return resolve_moe_model_adapter(module) is not None
@@ -379,14 +290,6 @@ class RoutingMixin:
             physical = mapping.physical_slots
             return physical.squeeze(-1) if original_ndim == 1 else physical
         copy_slots, copy_mask = layer.copy_slots_for_device(selected.device)
-        if layer.fixed_r2_layout and settings._FORCE_FIXED_R2_MIRRORED_REMAP:
-            physical = assign_tokens_to_mirrored_r2(
-                selected,
-                copy_slots,
-                source_ranks=self.ep_rank,
-                num_ranks=self.ep_size,
-            )
-            return physical.squeeze(-1) if original_ndim == 1 else physical
         if self.expert_swap_selector == "hiermoe_greedy_cover_p1":
             physical = assign_tokens_to_copies_greedy(
                 selected,
@@ -398,14 +301,6 @@ class RoutingMixin:
                 step=max(0, int(layer.latest_route_step)),
                 layer_seed=zlib.crc32(layer.key.encode("utf-8")),
                 max_copies=self.greedy_max_copies_per_expert,
-            )
-            return physical.squeeze(-1) if original_ndim == 1 else physical
-        if layer.fixed_r2_layout:
-            physical = assign_tokens_to_mirrored_r2(
-                selected,
-                copy_slots,
-                source_ranks=self.ep_rank,
-                num_ranks=self.ep_size,
             )
             return physical.squeeze(-1) if original_ndim == 1 else physical
         physical = assign_tokens_to_copies(
@@ -440,18 +335,11 @@ class RoutingMixin:
             layer.latest_route_step = int(step)
         layer.latest_hidden_size = int(hidden_size)
         layer.latest_bytes_per_element = int(bytes_per_element)
-        if (
-            self.fixed_pipeline_overlap
-            and self._ablation_replay_mode == "off"
-            and self._online_freeze_cost_mode == "off"
-            and step is not None
-        ):
-            self._submit_pipeline_plan(layer, selected_experts, int(step))
 
     def record_forward_physical_routes(self, layer_key: str, physical_routes: torch.Tensor) -> None:
         """Keep the physical routes already consumed by the trainable Forward."""
 
-        if not self._cost_model_verify and self._online_freeze_cost_mode == "off":
+        if not self._cost_model_verify:
             return
         layer = self.layers.get(layer_key)
         if layer is not None:
@@ -461,3 +349,12 @@ class RoutingMixin:
         layer = self.layers.get(layer_key)
         if layer is not None:
             layer.latest_route_step = int(step)
+
+    @staticmethod
+    def _layer_layout(layer: ExpertLayerState) -> torch.Tensor:
+        if layer.slot_to_logical is not None:
+            return layer.slot_to_logical.detach().cpu().clone()
+        layout = torch.full((layer.num_experts,), -1, dtype=torch.long)
+        logical = torch.arange(layer.num_experts, dtype=torch.long)
+        layout.scatter_(0, layer.logical_to_physical.to(torch.long), logical)
+        return layout

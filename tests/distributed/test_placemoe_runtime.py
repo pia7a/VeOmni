@@ -369,7 +369,7 @@ def _auto_calibration_manager(monkeypatch, tmp_path):
     manager._auto_calibration = True
     manager._auto_calibration_finalized = False
     manager._auto_calibration_runtime_perf_model_path = str(runtime_model)
-    manager._online_freeze_calibration_step = 12
+    manager._calibration_warmup_steps = 12
     manager._cost_model_validation_steps = 2
     manager._cost_model_reports = {step: {"step": step} for step in (12, 13, 14)}
     manager._cost_model_verify = True
@@ -609,8 +609,9 @@ def test_hot_update_validates_all_layers_before_migration() -> None:
     ],
 )
 def test_retired_selectors_fail_before_constructing_runtime_resources(monkeypatch, selector, flag, value):
-    monkeypatch.setattr(expert_swap_module, flag, value)
-    with pytest.raises(ValueError, match="removed"):
+    if value:
+        monkeypatch.setenv("VEOMNI_HIERMOE" + flag, str(value))
+    with pytest.raises(ValueError, match="[Rr]emoved"):
         ExpertSwapManager(
             ep_group=None,
             ep_size=1,

@@ -16,7 +16,7 @@ import numpy as np
 import pytest
 import torch
 
-from veomni.distributed.moe.hiermoe.greedy_planner import GreedyCommunicationPlanner
+from veomni.distributed.moe.hiermoe.calibration_cost import CalibrationCostModel
 from veomni.distributed.moe.hiermoe.perf_model import HierMoEPerfModel
 from veomni.distributed.moe.hiermoe.placemoe import (
     CommunityMappingConfig,
@@ -643,7 +643,8 @@ def test_single_node_hierarchy_places_base_copies_across_ranks():
 
 
 def test_single_node_traffic_features_use_rank_stage_only():
-    planner = GreedyCommunicationPlanner(
+    planner = CalibrationCostModel(
+        smooth_max_gamma=10.0,
         hierarchy=Hierarchy(ep_size=4, group_sizes=(4,), source="test"),
         perf_model=HierMoEPerfModel.default(),
         hidden_size=8,

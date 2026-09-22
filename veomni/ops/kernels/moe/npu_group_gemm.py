@@ -197,17 +197,6 @@ def npu_ep_fused_moe_forward(
             baseline_original_all_to_all_ms = (time.perf_counter() - baseline_start) * 1000.0
 
         placement_already_applied = False
-        if placement_manager is not None and state.expert_swap_mode == "layer" and state.layer_swap_forward_enabled:
-            assert layer_key is not None
-            state.expert_swap_pair = placement_manager.maybe_swap_layer_on_routing(
-                layer_key=layer_key,
-                selected_experts=selected_experts,
-                hidden_size=hidden_states.shape[-1],
-                bytes_per_element=hidden_states.element_size(),
-                step=state.current_step,
-            )
-            placement_already_applied = True
-
         placement_dispatch_start = placement_manager.placement_timing_event() if capture_placement_timing else None
         dispatch_start = time.perf_counter() if record_wall_metrics else None
         region_start = moe_timing_event() if timing_record is not None else None
@@ -237,8 +226,6 @@ def npu_ep_fused_moe_forward(
             start_event=region_start,
             end_event=region_end,
         )
-        if placement_already_applied and placement_manager is not None and layer_key is not None:
-            placement_manager.wait_pending_layer_swap(layer_key)
         if fc1_1_2_weight is not None:
             fc1_weight = fc1_1_2_weight
         else:
@@ -288,8 +275,6 @@ def npu_ep_fused_moe_forward(
         with moe_timing_context(timing_record, component="all_to_all", section="hiermoe_post_all_to_all"):
             hidden_states = rank_dedup_combine(hidden_states, hiermoe_ctx)
         placement_combine_end = placement_manager.placement_timing_event() if capture_placement_timing else None
-        if placement_manager is not None and layer_key is not None and state.layer_swap_forward_enabled:
-            placement_manager.advance_pipeline_after_combine(layer_key)
         combine_ms = (time.perf_counter() - combine_start) * 1000.0 if combine_start is not None else None
         region_end = moe_timing_event() if timing_record is not None else None
         record_moe_timing_span(

@@ -17,8 +17,6 @@ from __future__ import annotations
 import os
 from contextlib import nullcontext
 
-import torch
-
 
 try:
     from torch.distributed._tensor import DTensor
@@ -70,13 +68,6 @@ def _env_candidate_shards(name: str) -> int:
 
 _MAX_SWAP_BUCKET_BYTES = _env_int("VEOMNI_HIERMOE_SWAP_BUCKET_MIB", 1024) * 1024 * 1024
 _MAX_SWAP_WAVE_BYTES = _env_int("VEOMNI_HIERMOE_SWAP_WAVE_MIB", 2048) * 1024 * 1024
-_EXACT_SINGLE_SWAP_MAX_EXPERTS = 256
-_EXACT_SINGLE_SWAP_MAX_STATS_BYTES = 64 * 1024 * 1024
-_EXACT_P1_ROUTE_SAMPLE_SIZE = _env_int(
-    "VEOMNI_HIERMOE_EXACT_P1_ROUTE_SAMPLE_SIZE",
-    0,
-    minimum=0,
-)
 _SWAP_COST_CHUNK_CANDIDATES = _env_int("VEOMNI_HIERMOE_SWAP_COST_CHUNK_CANDIDATES", 96)
 _GREEDY_LAYER_PARALLEL_STREAMS = _env_int("VEOMNI_HIERMOE_GREEDY_LAYER_STREAMS", 8)
 _GREEDY_ADAPTIVE_TOPK_INITIAL = _env_int("VEOMNI_HIERMOE_GREEDY_ADAPTIVE_TOPK_INITIAL", 32)
@@ -85,7 +76,6 @@ _GREEDY_EXACT_PRIMITIVE_TOPK = _env_int(
     0,
     minimum=0,
 )
-_ALL_CANDIDATE_PAIR_CACHE: dict[tuple[str, int], torch.Tensor] = {}
 
 
 def _env_flag(name: str) -> bool:
@@ -93,12 +83,6 @@ def _env_flag(name: str) -> bool:
     return raw is not None and raw.lower() in {"1", "true", "yes", "on", "y"}
 
 
-_USE_FAST_2D_SELECTOR = not _env_flag("VEOMNI_HIERMOE_SWAP_DISABLE_FAST_2D")
-_USE_GLOBAL_2D_SELECTOR = not _env_flag("VEOMNI_HIERMOE_SWAP_DISABLE_GLOBAL_2D")
-_USE_GLOBAL_HIERARCHY_SELECTOR = not _env_flag("VEOMNI_HIERMOE_SWAP_DISABLE_GLOBAL_HIERARCHY")
-_SWAP_CANDIDATE_SHARDS = _env_candidate_shards("VEOMNI_HIERMOE_SWAP_CANDIDATE_SHARDS")
-_FIXED_R2_LAYOUT = _env_flag("VEOMNI_HIERMOE_FIXED_R2_LAYOUT")
-_FORCE_FIXED_R2_MIRRORED_REMAP = _env_flag("VEOMNI_HIERMOE_FORCE_FIXED_R2_MIRRORED_REMAP")
 _GREEDY_ADAPTIVE_TOPK = _env_flag("VEOMNI_HIERMOE_GREEDY_ADAPTIVE_TOPK")
 _GREEDY_ADAPTIVE_TOPK_STRICT = _env_flag("VEOMNI_HIERMOE_GREEDY_ADAPTIVE_TOPK_STRICT")
 _GREEDY_POST_SHORTLIST_COMPACT_PAIR = _env_flag("VEOMNI_HIERMOE_GREEDY_POST_SHORTLIST_COMPACT_PAIR")
@@ -127,26 +111,14 @@ _PIPELINE_PREPARE_CUT_POINTS = (2, 2, 5, 7, 10, 13)
 # to be dormant between fixed pipeline windows.
 _PIPELINE_HOST_EVENT_POLL_SECONDS = 0.05
 _PIPELINE_PLAN_WORKERS = _env_int("VEOMNI_HIERMOE_PIPELINE_PLAN_WORKERS", 64)
-_ABLATION_REPLAY_PATH = os.environ.get("VEOMNI_HIERMOE_ABLATION_REPLAY_PATH", "").strip()
-_ABLATION_REPLAY_MODE = os.environ.get("VEOMNI_HIERMOE_ABLATION_REPLAY_MODE", "off").strip().lower()
-_ABLATION_MIGRATION_MODE = os.environ.get("VEOMNI_HIERMOE_ABLATION_MIGRATION_MODE", "hidden").strip().lower()
-_ABLATION_GRAD_MODE = os.environ.get("VEOMNI_HIERMOE_ABLATION_GRAD_MODE", "hidden").strip().lower()
+# Internal subprocess contract for the production calibrate-model command.
+_CALIBRATION_ONLY = _env_flag("VEOMNI_PLACEMOE_CALIBRATION_ONLY")
+_CALIBRATION_STEP = _env_int("VEOMNI_PLACEMOE_CALIBRATION_STEP", 2, minimum=0)
+_CALIBRATION_VALIDATION_STEPS = _env_int("VEOMNI_PLACEMOE_CALIBRATION_VALIDATION_STEPS", 2)
 _INITIAL_LAYOUT_PATH = os.environ.get("VEOMNI_HIERMOE_INITIAL_LAYOUT", "").strip()
 _PLACEMOE_RUNTIME_CONFIG = PlaceMoERuntimeConfig.from_environment()
 if _PLACEMOE_RUNTIME_CONFIG.source_path:
     _INITIAL_LAYOUT_PATH = _PLACEMOE_RUNTIME_CONFIG.initial_artifact
-    _ABLATION_REPLAY_PATH = _PLACEMOE_RUNTIME_CONFIG.initial_artifact
-_CPU_PLANNER_MODE = os.environ.get("VEOMNI_HIERMOE_CPU_PLANNER_MODE", "off").strip().lower()
-_CPU_TRAIN_CORES_PER_RANK = _env_int("VEOMNI_HIERMOE_CPU_TRAIN_CORES_PER_RANK", 8)
-_NPU_LAYER_OWNER_BLOCKING = _env_flag("VEOMNI_HIERMOE_NPU_LAYER_OWNER_BLOCKING")
-_NPU_LAYER_OWNER_COLLECTIVE = (
-    os.environ.get(
-        "VEOMNI_HIERMOE_NPU_LAYER_OWNER_COLLECTIVE",
-        "reduce_scatter",
-    )
-    .strip()
-    .lower()
-)
 _HOT_UPDATE = _PLACEMOE_RUNTIME_CONFIG.hot_update.enabled
 _HOT_UPDATE_WORK_ROOT = _PLACEMOE_RUNTIME_CONFIG.hot_update.work_root
 _HOT_UPDATE_BUILDER = _PLACEMOE_RUNTIME_CONFIG.hot_update.planner_path
@@ -170,7 +142,7 @@ def configure_placemoe_runtime(config: PlaceMoERuntimeConfig) -> None:
     """
 
     global _PLACEMOE_RUNTIME_CONFIG
-    global _INITIAL_LAYOUT_PATH, _ABLATION_REPLAY_PATH
+    global _INITIAL_LAYOUT_PATH
     global _HOT_UPDATE, _HOT_UPDATE_WORK_ROOT, _HOT_UPDATE_BUILDER, _HOT_UPDATE_RESOURCES
     global _HOT_UPDATE_LAST_STEP, _HOT_UPDATE_LAYOUT_INTERVAL, _HOT_UPDATE_MAPPING_INTERVAL
     global _HOT_UPDATE_INTER_MS_PER_BYTE, _HOT_UPDATE_INTRA_MS_PER_BYTE
@@ -180,8 +152,6 @@ def configure_placemoe_runtime(config: PlaceMoERuntimeConfig) -> None:
     config.validate()
     _PLACEMOE_RUNTIME_CONFIG = config
     _INITIAL_LAYOUT_PATH = config.initial_artifact
-    if config.initial_artifact:
-        _ABLATION_REPLAY_PATH = config.initial_artifact
     _HOT_UPDATE = config.hot_update.enabled
     _HOT_UPDATE_WORK_ROOT = config.hot_update.work_root
     _HOT_UPDATE_BUILDER = config.hot_update.planner_path
@@ -195,98 +165,6 @@ def configure_placemoe_runtime(config: PlaceMoERuntimeConfig) -> None:
     _HOT_UPDATE_COMMUNICATION_MULTIPLIER = config.calibration.communication_multiplier
     _HOT_UPDATE_COMPUTE_MS_PER_ASSIGNMENT = config.calibration.compute_ms_per_assignment
     _HOT_UPDATE_COMPUTE_MULTIPLIER = config.calibration.compute_multiplier
-
-
-_ONLINE_FREEZE_COST_MODE = os.environ.get("VEOMNI_HIERMOE_ONLINE_FREEZE_COST_MODE", "off").strip().lower()
-_ONLINE_FREEZE_CALIBRATION_STEP = _env_int(
-    "VEOMNI_HIERMOE_ONLINE_FREEZE_CALIBRATION_STEP",
-    1,
-    minimum=0,
-)
-_ONLINE_FREEZE_COMMUNICATION_RATIO = _env_float(
-    "VEOMNI_HIERMOE_ONLINE_FREEZE_COMMUNICATION_RATIO",
-    3.1,
-)
-_ONLINE_FREEZE_COMPUTE_RATIO = _env_float(
-    "VEOMNI_HIERMOE_ONLINE_FREEZE_COMPUTE_RATIO",
-    4.19,
-)
-_ONLINE_FREEZE_INTER_MS_PER_BYTE = _env_float(
-    "VEOMNI_HIERMOE_ONLINE_FREEZE_INTER_MS_PER_BYTE",
-    6.765449326279194e-08,
-)
-_ONLINE_FREEZE_INTRA_MS_PER_BYTE = _env_float(
-    "VEOMNI_HIERMOE_ONLINE_FREEZE_INTRA_MS_PER_BYTE",
-    5.02482606728045e-09,
-)
-_ONLINE_FREEZE_ROUTE_MS_PER_ASSIGNMENT = _env_float(
-    "VEOMNI_HIERMOE_ONLINE_FREEZE_ROUTE_MS_PER_ASSIGNMENT",
-    8.746548178958447e-05,
-)
-_ONLINE_FREEZE_TRAFFIC_INTERCEPT_MS = _env_float(
-    "VEOMNI_HIERMOE_ONLINE_FREEZE_TRAFFIC_INTERCEPT_MS",
-    16.771503695343263,
-)
-_COST_MODEL_VERIFY = _env_flag("VEOMNI_HIERMOE_COST_MODEL_VERIFY")
-_EXPORT_COST_MODEL_SAMPLES = _env_flag("VEOMNI_HIERMOE_EXPORT_COST_MODEL_SAMPLES")
-_COST_MODEL_VALIDATION_STEPS = _env_int(
-    "VEOMNI_HIERMOE_COST_MODEL_VALIDATION_STEPS",
-    1,
-    minimum=1,
-)
-_ONLINE_LUT_UPDATE = _env_flag("VEOMNI_HIERMOE_ONLINE_LUT_UPDATE")
-_ONLINE_LUT_START_STEP = _env_int(
-    "VEOMNI_HIERMOE_ONLINE_LUT_START_STEP",
-    1,
-    minimum=0,
-)
-_ONLINE_LUT_MIN_GAIN = _env_float(
-    "VEOMNI_HIERMOE_ONLINE_LUT_MIN_GAIN",
-    0.0,
-)
-_FORWARD_REUSE_COVER = _env_flag("VEOMNI_HIERMOE_FORWARD_REUSE_COVER")
-_FORWARD_REUSE_COVER_COMPUTE_WEIGHT = _env_float(
-    "VEOMNI_HIERMOE_FORWARD_REUSE_COVER_COMPUTE_WEIGHT",
-    1.0,
-)
-_FORWARD_REUSE_COVER_COMPUTE_MS_PER_ASSIGNMENT = _env_float(
-    "VEOMNI_HIERMOE_FORWARD_REUSE_COVER_COMPUTE_MS_PER_ASSIGNMENT",
-    2.82807e-05,
-)
-_FORWARD_REUSE_COVER_MIN_GAIN = _env_float(
-    "VEOMNI_HIERMOE_FORWARD_REUSE_COVER_MIN_GAIN",
-    0.0,
-)
-_FORWARD_REUSE_COVER_PATCH_REMAP = _env_flag("VEOMNI_HIERMOE_FORWARD_REUSE_COVER_PATCH_REMAP")
-_FORWARD_REUSE_COVER_FAST = _env_flag("VEOMNI_HIERMOE_FORWARD_REUSE_COVER_FAST")
-_FORWARD_REUSE_COVER_ROUNDS = _env_int(
-    "VEOMNI_HIERMOE_FORWARD_REUSE_COVER_ROUNDS",
-    1,
-    minimum=1,
-)
-_FORWARD_REUSE_COVER_ONLY_STEP = _env_int(
-    "VEOMNI_HIERMOE_FORWARD_REUSE_COVER_ONLY_STEP",
-    -1,
-    minimum=-1,
-)
-_FORWARD_REUSE_COVER_VICTIM_MODE = (
-    os.environ.get("VEOMNI_HIERMOE_FORWARD_REUSE_COVER_VICTIM_MODE", "minimum").strip().lower()
-)
-_FORWARD_REUSE_COVER_SERVICE_SCOPE = (
-    os.environ.get("VEOMNI_HIERMOE_FORWARD_REUSE_COVER_SERVICE_SCOPE", "rank").strip().lower()
-)
-_FORWARD_REUSE_COVER_CONFIRM_SAMPLES = _env_int(
-    "VEOMNI_HIERMOE_FORWARD_REUSE_COVER_CONFIRM_SAMPLES",
-    1,
-    minimum=1,
-)
-_FORWARD_REUSE_COVER_AGGREGATE_SERVICE_GROUP = _env_flag("VEOMNI_HIERMOE_FORWARD_REUSE_COVER_AGGREGATE_SERVICE_GROUP")
-_FORWARD_REUSE_COVER_PROPOSAL_TOPK = _env_int(
-    "VEOMNI_HIERMOE_FORWARD_REUSE_COVER_PROPOSAL_TOPK",
-    1,
-    minimum=1,
-)
-_FORWARD_REUSE_COVER_EMPTY_SEEDING = _env_flag("VEOMNI_HIERMOE_FORWARD_REUSE_COVER_EMPTY_SEEDING")
 
 
 def _full_timing_range(section: str):
@@ -307,3 +185,24 @@ def _placement_timing_range(prefix: str | None, phase: str):
     if prefix is None:
         return nullcontext()
     return _full_timing_range(f"{prefix}_{phase}")
+
+
+def validate_production_environment() -> None:
+    """Reject removed experiments instead of silently changing a launch command."""
+    prefixes = (
+        "VEOMNI_HIERMOE_ABLATION_",
+        "VEOMNI_HIERMOE_FORWARD_REUSE_COVER",
+        "VEOMNI_HIERMOE_ONLINE_LUT_",
+        "VEOMNI_HIERMOE_ONLINE_FREEZE_",
+        "VEOMNI_HIERMOE_CPU_PLANNER_",
+        "VEOMNI_HIERMOE_NPU_LAYER_OWNER_",
+        "VEOMNI_HIERMOE_DEBUG_REDUNDANT_COPY",
+        "VEOMNI_HIERMOE_FIXED_R2",
+        "VEOMNI_HIERMOE_FORCE_FIXED_R2",
+        "VEOMNI_HIERMOE_COST_MODEL_VERIFY",
+        "VEOMNI_HIERMOE_EXPORT_COST_MODEL_SAMPLES",
+        "VEOMNI_HIERMOE_EXACT_P1_",
+    )
+    retired = sorted(key for key in os.environ if key.startswith(prefixes))
+    if retired:
+        raise ValueError(f"Removed HierMoE experiment settings: {', '.join(retired)}. Use train.hiermoe.placemoe.")

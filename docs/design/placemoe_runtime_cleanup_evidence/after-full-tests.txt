@@ -1,0 +1,61 @@
+
+==================================== ERRORS ====================================
+__________ ERROR collecting tests/data/multimodal/test_video_utils.py __________
+tests/data/multimodal/test_video_utils.py:25: in <module>
+    VIDEO_PATH = os.path.join(os.environ["CI_SAMPLES_DIR"], "sample.mp4")
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen os>:679: in __getitem__
+    ???
+E   KeyError: 'CI_SAMPLES_DIR'
+_______________ ERROR collecting tests/e2e/test_e2e_training.py ________________
+ImportError while importing test module '/workspace/tests/e2e/test_e2e_training.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/python3.11.15/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/e2e/test_e2e_training.py:4: in <module>
+    from exec_scripts import E2E_TEST_SCRIPT
+E   ModuleNotFoundError: No module named 'exec_scripts'
+__________ ERROR collecting tests/e2e/test_e2e_training_no_reshard.py __________
+ImportError while importing test module '/workspace/tests/e2e/test_e2e_training_no_reshard.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/python3.11.15/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/e2e/test_e2e_training_no_reshard.py:4: in <module>
+    from exec_scripts import E2E_TEST_SCRIPT
+E   ModuleNotFoundError: No module named 'exec_scripts'
+______________ ERROR collecting tests/models/test_models_patch.py ______________
+ImportError while importing test module '/workspace/tests/models/test_models_patch.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/python3.11.15/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/models/test_models_patch.py:12: in <module>
+    from veomni import _apply_patches
+E   ImportError: cannot import name '_apply_patches' from 'veomni' (unknown location)
+_________ ERROR collecting tests/ops/test_fused_moe_split_vs_merged.py _________
+ImportError while importing test module '/workspace/tests/ops/test_fused_moe_split_vs_merged.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/python3.11.15/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/ops/test_fused_moe_split_vs_merged.py:5: in <module>
+    from veomni.distributed.moe.moe_layer import EPGroupGemm, EPMergedFc1GroupGemm
+veomni/distributed/moe/moe_layer.py:28: in <module>
+    from ...ops.kernels.moe._kernels.kernel.group_gemm import group_gemm_same_mn, group_gemm_same_nk
+veomni/ops/kernels/moe/_kernels/kernel/group_gemm.py:18: in <module>
+    import triton
+E   ModuleNotFoundError: No module named 'triton'
+=========================== short test summary info ============================
+ERROR tests/data/multimodal/test_video_utils.py - KeyError: 'CI_SAMPLES_DIR'
+ERROR tests/e2e/test_e2e_training.py
+ERROR tests/e2e/test_e2e_training_no_reshard.py
+ERROR tests/models/test_models_patch.py
+ERROR tests/ops/test_fused_moe_split_vs_merged.py
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 5 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 skipped, 5 errors in 12.34s

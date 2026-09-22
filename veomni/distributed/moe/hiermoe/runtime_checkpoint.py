@@ -110,6 +110,8 @@ class CheckpointMixin:
                 assert owner_mapping is not None
                 policy_version = payload.get("quota_algorithm_version")
                 raw_policy = payload.get("quota_policy", ())
+                if raw_policy:
+                    raise ValueError("Historical quota checkpoints were removed; use a PlaceMoE checkpoint.")
                 if raw_policy and policy_version != CORE_MOE_ALGORITHM_VERSION:
                     incompatible_quota_key = incompatible_quota_key or key
                     quota_policy = ()

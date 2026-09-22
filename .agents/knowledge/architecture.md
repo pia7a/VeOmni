@@ -211,23 +211,20 @@ Distributed tests (`tests/parallel/`, `tests/e2e/`) may require multiple GPUs an
 budgets live in `planner_config.py`, deterministic candidate construction in
 `planner_candidates.py`, and per-layer orchestration in `planner_search.py`.
 
-`veomni/distributed/moe/hiermoe/expert_swap.py` composes runtime mixins for artifact
-loading, routing, calibration, hot updates, migration, gradients, checkpointing,
-and the existing initialization pipeline. `runtime_settings.py` owns mutable
-configuration. `runtime_types.py` defines shared records; `runtime_tensors.py`
-contains tensor/optimizer-state primitives. `traffic.py` supplies shared exact
-counts and route replay costs, independently of candidate search.
+`veomni/distributed/moe/hiermoe/expert_swap.py` composes artifact loading,
+routing, calibration, hot updates, gradients, checkpoint metadata and gradient
+stream lifecycle. Historical placement search and migration scheduling are
+removed. Production uses step mode with zero legacy search budgets and preloaded
+schema-2 artifacts; retired environment modes and nonempty quota checkpoints are
+rejected. Standalone model calibration retains its dedicated production path.
 
-Historical batched, layer-owner, CPU-process, forward-cover, online-LUT and
-exact-pair experimental selectors have been retired. Preserve currently used
-initialization/calibration planners and all communication/gradient windows.
-See `docs/design/placemoe_refactor_20260921.md` for the full file map, CPU test
-coverage, reference replay and accelerator-validation limits.
+`runtime_settings.py` owns environment configuration, `runtime_types.py` shared
+records, and `runtime_tensors.py` tensor/optimizer-state primitives. Exact traffic
+counts and calibration costs remain independent of candidate search. The three
+legacy-named planner modules retain only routing functions and representations.
+Production candidate evaluation still uses route replay.
 
-The second cleanup removes unreachable retired-mode dispatch and task records,
-unused scorer/gradient/optimizer helper closures, and the retired Forward-only
-statistics hook. Historical metric keys are captured in one construction-time
-`_retired_planner_metrics` snapshot, rather than loose manager attributes.
-Community candidates require their existing initial mapping. See
-`docs/design/placemoe_cleanup_20260922.md` for the current complete file table,
-38 cross-revision CPU scenarios, profile parity, and remaining hardware limits.
+See `docs/design/placemoe_runtime_cleanup_20260922.md` for the current file map,
+CPU parity evidence and hardware-validation limits. Checkpoint metadata currently
+does not serialize or restore Source LUT; layout parity does not establish full
+routing-state restoration.

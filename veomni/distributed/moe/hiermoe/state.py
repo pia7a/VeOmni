@@ -367,18 +367,6 @@ def get_hiermoe_state() -> HierMoEState | None:
     return _STATE
 
 
-def hiermoe_static_cache_release_required() -> bool:
-    state = _STATE
-    manager = None if state is None else state.expert_swap_manager
-    return bool(
-        state is not None
-        and state.active
-        and manager is not None
-        and not manager.checkpoint_route_replay_required
-        and manager._ablation_grad_mode == "blocking"
-    )
-
-
 def hiermoe_checkpoint_replay_enabled() -> bool:
     state = _STATE
     return bool(
@@ -554,18 +542,6 @@ def configure_hiermoe_pipeline_microstep(micro_step: int, num_micro_steps: int) 
     )
 
 
-def wait_hiermoe_pipeline_migration(layer_key: str) -> None:
-    state = _STATE
-    if state is not None and state.expert_swap_manager is not None:
-        state.expert_swap_manager.wait_pipeline_migration_before_layer(layer_key)
-
-
-def advance_hiermoe_pipeline_after_combine(layer_key: str) -> None:
-    state = _STATE
-    if state is not None and state.expert_swap_manager is not None:
-        state.expert_swap_manager.advance_pipeline_after_combine(layer_key)
-
-
 def shutdown_hiermoe_pipeline() -> None:
     state = _STATE
     if state is not None and state.expert_swap_manager is not None:
@@ -603,9 +579,6 @@ def maybe_run_hiermoe_expert_swap(step: int) -> str | None:
     state = _STATE
     if state is None or state.expert_swap_manager is None:
         return None
-    if state.expert_swap_mode == "layer":
-        state.expert_swap_manager.prepare_calibrations(step)
-        return state.expert_swap_pair
     state.expert_swap_pair = state.expert_swap_manager.maybe_swap(step)
     return state.expert_swap_pair
 

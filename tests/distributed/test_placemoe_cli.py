@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 
 import yaml
 
@@ -680,3 +681,56 @@ def test_doctor_command_reports_missing_calibration_artifact(tmp_path, monkeypat
     assert "configuration" in output
     assert "missing.json" in output
     assert "placemoe prepare" in output
+
+
+def test_model_calibration_launcher_uses_production_runtime_contract(tmp_path, monkeypatch):
+    import yaml
+
+    config = tmp_path / "train.yaml"
+    config.write_text(
+        yaml.safe_dump(
+            {
+                "model": {"ops_implementation": {"load_balancing_loss_implementation": "eager"}},
+                "train": {"accelerator": {"ep_size": 2}, "hiermoe": {"hierarchy_group_sizes": [2]}},
+            }
+        )
+    )
+    entrypoint = tmp_path / "train.py"
+    entrypoint.touch()
+    runtime = tmp_path / "runtime.json"
+    runtime.write_text("{}")
+    monkeypatch.setattr(cli, "_distributed_environment", lambda: (1, 0, 2, "127.0.0.1", 29500))
+    monkeypatch.setattr(cli, "validate_runtime_performance_model", lambda *_args, **_kwargs: None)
+    launched = []
+
+    def run(command, *, environment, log_path):
+        launched.append(command)
+        assert environment["VEOMNI_PLACEMOE_CALIBRATION_ONLY"] == "1"
+        assert environment["VEOMNI_PLACEMOE_CALIBRATION_STEP"] == "2"
+        assert environment["VEOMNI_PLACEMOE_CALIBRATION_VALIDATION_STEPS"] == "3"
+        assert "VEOMNI_HIERMOE_COST_MODEL_VERIFY" not in environment
+        derived = yaml.safe_load(Path(command[-1]).read_text())
+        assert derived["train"]["hiermoe"]["expert_swap_max_pairs_per_layer"] == 0
+        assert derived["train"]["hiermoe"]["max_slot_op_search_rounds"] == 0
+        return 1
+
+    monkeypatch.setattr(cli, "_stream_training", run)
+    args = cli.build_parser().parse_args(
+        [
+            "calibrate-model",
+            "--config",
+            str(config),
+            "--entrypoint",
+            str(entrypoint),
+            "--runtime-perf-model",
+            str(runtime),
+            "--output",
+            str(tmp_path / "planner.json"),
+            "--warmup-steps",
+            "2",
+            "--validation-steps",
+            "3",
+        ]
+    )
+    assert cli._calibrate_model_command(args) == 2
+    assert len(launched) == 1

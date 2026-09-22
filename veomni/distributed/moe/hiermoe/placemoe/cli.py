@@ -901,17 +901,10 @@ def _calibrate_model_command(args: argparse.Namespace) -> int:
         environment.update(
             {
                 "VERL_MOE_TIMING_DIR": str(timing_directory),
-                "VEOMNI_HIERMOE_COST_MODEL_VERIFY": "1",
-                "VEOMNI_HIERMOE_EXPORT_COST_MODEL_SAMPLES": "1",
-                "VEOMNI_HIERMOE_ONLINE_FREEZE_CALIBRATION_STEP": str(schedule.calibration_step),
-                "VEOMNI_HIERMOE_COST_MODEL_VALIDATION_STEPS": str(schedule.validation_steps),
+                "VEOMNI_PLACEMOE_CALIBRATION_ONLY": "1",
+                "VEOMNI_PLACEMOE_CALIBRATION_STEP": str(schedule.calibration_step),
+                "VEOMNI_PLACEMOE_CALIBRATION_VALIDATION_STEPS": str(schedule.validation_steps),
                 "VEOMNI_HIERMOE_INTERNAL_TIMING": "1",
-                "VEOMNI_HIERMOE_FIXED_R2_LAYOUT": "0",
-                "VEOMNI_HIERMOE_CPU_PLANNER_MODE": "off",
-                "VEOMNI_HIERMOE_ONLINE_FREEZE_COST_MODE": "off",
-                "VEOMNI_HIERMOE_FORWARD_REUSE_COVER": "0",
-                "VEOMNI_HIERMOE_ONLINE_LUT_UPDATE": "0",
-                "VEOMNI_HIERMOE_NPU_LAYER_OWNER_BLOCKING": "0",
                 "VEOMNI_MOE_TIMING_INDIVIDUAL_SPANS": "0",
             }
         )

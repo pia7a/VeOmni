@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import time
-from concurrent.futures import Future
 from dataclasses import dataclass, field
-from threading import Event
 from typing import Any
 
 import torch
@@ -13,27 +10,9 @@ import torch
 from placemoe.model_adapter import MoEModelAdapter
 
 from ....utils.accelerator_timing import AcceleratorEvent
-from . import runtime_settings as settings
 from .core_planner import (
     QuotaPolicyEntry,
 )
-from .planner import (
-    PlacementPlan,
-)
-
-
-@dataclass
-class ExpertPlacement:
-    logical_to_physical: tuple[int, ...]
-
-    @classmethod
-    def identity(cls, num_experts: int) -> "ExpertPlacement":
-        return cls(logical_to_physical=tuple(range(num_experts)))
-
-    def swapped(self, lhs: int, rhs: int) -> "ExpertPlacement":
-        mapping = list(self.logical_to_physical)
-        mapping[lhs], mapping[rhs] = mapping[rhs], mapping[lhs]
-        return ExpertPlacement(logical_to_physical=tuple(mapping))
 
 
 def _initial_slot_to_logical(
@@ -61,20 +40,6 @@ def _canonical_physical_slots(
     return canonical
 
 
-@dataclass(frozen=True)
-class _PendingLayerTiming:
-    step: int
-    selected_experts: torch.Tensor
-    slot_to_logical: torch.Tensor
-    local_assignment_count: torch.Tensor
-    dispatch_start: AcceleratorEvent
-    dispatch_end: AcceleratorEvent
-    compute_start: AcceleratorEvent
-    compute_end: AcceleratorEvent
-    combine_start: AcceleratorEvent
-    combine_end: AcceleratorEvent
-
-
 @dataclass
 class _CostModelTiming:
     step: int
@@ -88,14 +53,6 @@ class _CostModelTiming:
     compute_end: AcceleratorEvent
     combine_start: AcceleratorEvent
     combine_end: AcceleratorEvent
-
-
-@dataclass(frozen=True)
-class _PlannerCalibration:
-    source_step: int
-    communication_scale: float
-    forward_compute_per_assignment: float
-    forward_compute_constant: float = 0.0
 
 
 @dataclass
@@ -114,7 +71,6 @@ class ExpertLayerState:
     latest_selected_experts: torch.Tensor | None = None
     latest_physical_routes: torch.Tensor | None = None
     latest_route_step: int = -1
-    last_planned_step: int = -1
     accumulated_tokens_per_local_expert: torch.Tensor | None = None
     latest_hidden_size: int = 0
     latest_bytes_per_element: int = 0
@@ -129,10 +85,7 @@ class ExpertLayerState:
     _redundant_copy_groups_cache: tuple[tuple[int, tuple[int, ...]], ...] | None = None
     _replica_grad_schedule_cache: _ReplicaGradSchedule | None = None
     placement_version: int = 0
-    pending_timing: _PendingLayerTiming | None = None
     cost_model_timings: list[_CostModelTiming] = field(default_factory=list)
-    planner_calibration: _PlannerCalibration | None = None
-    last_plan: PlacementPlan | None = None
     pending_physical_routes: torch.Tensor | None = None
     pending_route_data_ptr: int = 0
     active_quota_policy: tuple[QuotaPolicyEntry, ...] = ()
@@ -274,116 +227,10 @@ class _CoverTensorEntry:
     dst_slot: int
 
 
-@dataclass(frozen=True)
-class _LayerSwapPlan:
-    layer_key: str
-    logical_lhs: int
-    logical_rhs: int
-    lhs_rank: int
-    rhs_rank: int
-    entries: tuple[_SwapTensorEntry, ...]
-
-
 @dataclass
 class _SwapStagingBuffer:
     send: torch.Tensor
     recv: torch.Tensor
-
-
-@dataclass
-class _PendingLayerSwap:
-    layer_key: str
-    works: tuple[Any, ...]
-    unpack: tuple[Any, ...]
-    device: torch.device
-    timing_context: Any
-
-
-@dataclass(frozen=True)
-class _PipelinePlanResult:
-    layer_key: str
-    source_step: int
-    placement_version: int
-    plan: PlacementPlan
-    raw_ms: float
-    latency_ms: float
-    prepare_device_ms: float = 0.0
-    collective_device_ms: float = 0.0
-    score_device_ms: float = 0.0
-    prepare_substage_device_ms: dict[str, float] = field(default_factory=dict)
-    prepare_substage_host_ms: dict[str, float] = field(default_factory=dict)
-    prepare_substage_thread_cpu_ms: dict[str, float] = field(default_factory=dict)
-
-
-@dataclass
-class _PipelinePrepareSubstageTiming:
-    start_event: AcceleratorEvent | None = None
-    started_at: float = 0.0
-    started_thread_at: float = 0.0
-    event_ranges: dict[str, list[tuple[AcceleratorEvent | None, AcceleratorEvent | None]]] = field(
-        default_factory=dict
-    )
-    host_ms: dict[str, float] = field(default_factory=dict)
-    thread_cpu_ms: dict[str, float] = field(default_factory=dict)
-
-    def begin(self, event: AcceleratorEvent | None, started_at: float, started_thread_at: float) -> None:
-        self.start_event = event
-        self.started_at = started_at
-        self.started_thread_at = started_thread_at
-
-    def checkpoint(
-        self,
-        stage: str,
-        ended_at: float,
-        ended_thread_at: float,
-        end_event: AcceleratorEvent | None,
-    ) -> None:
-        if stage not in settings._PIPELINE_PREPARE_SUBSTAGES:
-            raise ValueError(f"Unknown pipeline Prepare substage: {stage}")
-        self.event_ranges.setdefault(stage, []).append((self.start_event, end_event))
-        self.host_ms[stage] = self.host_ms.get(stage, 0.0) + (ended_at - self.started_at) * 1000.0
-        self.thread_cpu_ms[stage] = (
-            self.thread_cpu_ms.get(stage, 0.0) + (ended_thread_at - self.started_thread_at) * 1000.0
-        )
-        self.start_event = end_event
-        self.started_at = time.perf_counter()
-        self.started_thread_at = time.thread_time()
-
-    def durations_ms(self) -> tuple[dict[str, float], dict[str, float], dict[str, float]]:
-        device_ms = {
-            stage: sum(0.0 if start is None or end is None else start.elapsed_time(end) for start, end in ranges)
-            for stage, ranges in self.event_ranges.items()
-        }
-        return device_ms, dict(self.host_ms), dict(self.thread_cpu_ms)
-
-
-@dataclass
-class _PipelinePlannerStageTiming:
-    prepare_start: AcceleratorEvent | None = None
-    prepare_end: AcceleratorEvent | None = None
-    collective_start: AcceleratorEvent | None = None
-    collective_end: AcceleratorEvent | None = None
-    score_start: AcceleratorEvent | None = None
-    score_end: AcceleratorEvent | None = None
-
-    @staticmethod
-    def _elapsed(start: AcceleratorEvent | None, end: AcceleratorEvent | None) -> float:
-        return 0.0 if start is None or end is None else start.elapsed_time(end)
-
-    def durations_ms(self) -> tuple[float, float, float]:
-        return (
-            self._elapsed(self.prepare_start, self.prepare_end),
-            self._elapsed(self.collective_start, self.collective_end),
-            self._elapsed(self.score_start, self.score_end),
-        )
-
-
-@dataclass(frozen=True)
-class _PipelineMigrationResult:
-    layer_key: str
-    source_step: int
-    committed: tuple[str, ...]
-    raw_ms: float
 
 
 @dataclass(frozen=True)
@@ -392,45 +239,6 @@ class _PipelineGradResult:
     raw_ms: float
     start_event: AcceleratorEvent | None = None
     completion_event: AcceleratorEvent | None = None
-
-
-@dataclass(frozen=True)
-class _PendingPipelinePlan:
-    plan: PlacementPlan
-    source_step: int
-    placement_version: int
-
-
-@dataclass
-class _PipelinePlannerWindows:
-    prepare_gates: tuple[Event, ...] = field(
-        default_factory=lambda: tuple(Event() for _ in settings._PIPELINE_PREPARE_CUT_POINTS)
-    )
-    prepare_enqueued: tuple[Event, ...] = field(
-        default_factory=lambda: tuple(Event() for _ in settings._PIPELINE_PREPARE_CUT_POINTS)
-    )
-    prepare_done_events: list[AcceleratorEvent | None] = field(
-        default_factory=lambda: [None] * len(settings._PIPELINE_PREPARE_CUT_POINTS)
-    )
-    prepare_a2a_end_events: list[AcceleratorEvent | None] = field(
-        default_factory=lambda: [None] * len(settings._PIPELINE_PREPARE_CUT_POINTS)
-    )
-    prepare_next_window: int = 0
-    collective_gate: Event = field(default_factory=Event)
-    collective_tensor_ready: Event = field(default_factory=Event)
-    collective_result_ready: Event = field(default_factory=Event)
-    collective_done: Event = field(default_factory=Event)
-    collective_tensor: torch.Tensor | None = None
-    collective_device: torch.device | None = None
-    collective_timing: _PipelinePlannerStageTiming | None = None
-    collective_error: BaseException | None = None
-    collective_future: Future[Any] | None = None
-    collective_done_event: AcceleratorEvent | None = None
-    collective_deadline_event: AcceleratorEvent | None = None
-    score_gate: Event = field(default_factory=Event)
-    score_done: Event = field(default_factory=Event)
-    score_done_event: AcceleratorEvent | None = None
-    score_deadline_event: AcceleratorEvent | None = None
 
 
 @dataclass(frozen=True)

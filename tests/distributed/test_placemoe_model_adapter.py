@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 import torch
 from torch import nn
@@ -67,9 +69,9 @@ def _manager() -> ExpertSwapManager:
         ep_size=2,
         ep_rank=0,
         expert_swap_interval=1,
-        expert_swap_max_pairs_per_layer=1,
+        expert_swap_max_pairs_per_layer=0,
         redundant_slot_increment_per_device=1,
-        max_replica_rounds=1,
+        max_replica_rounds=0,
         smooth_max_gamma=10.0,
         hierarchy=Hierarchy(ep_size=2, group_sizes=(2,), source="test"),
         perf_model=HierMoEPerfModel.default(),
@@ -174,9 +176,6 @@ def test_checkpoint_paths_recognize_fused_and_split_expert_parameters(projection
 
 def test_hot_update_seeds_source_mapping_without_initial_artifact(monkeypatch) -> None:
     monkeypatch.setattr(expert_swap_module, "_HOT_UPDATE", True)
-    monkeypatch.setattr(expert_swap_module, "_FORWARD_REUSE_COVER", False)
-    monkeypatch.setattr(expert_swap_module, "_FORWARD_REUSE_COVER_PATCH_REMAP", False)
-    monkeypatch.setattr(expert_swap_module, "_ABLATION_REPLAY_MODE", "off")
 
     module = _SplitProjectionExperts()
     expand_redundant_expert_slots(module, ep_size=2, redundant_slot_increment_per_device=1)
@@ -205,10 +204,12 @@ def test_hot_update_seeds_source_mapping_without_initial_artifact(monkeypatch) -
 def test_zero_replica_hot_update_constructs_manager_and_seeds_mapping(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(expert_swap_module, "_HOT_UPDATE", True)
     monkeypatch.setattr(expert_swap_module, "_HOT_UPDATE_WORK_ROOT", str(tmp_path))
-    monkeypatch.setattr(expert_swap_module, "_FORWARD_REUSE_COVER", False)
-    monkeypatch.setattr(expert_swap_module, "_FORWARD_REUSE_COVER_PATCH_REMAP", False)
-    monkeypatch.setattr(expert_swap_module, "_ABLATION_REPLAY_MODE", "off")
-    monkeypatch.setattr(expert_swap_module, "_COST_MODEL_VERIFY", False)
+    config = expert_swap_module._PLACEMOE_RUNTIME_CONFIG
+    monkeypatch.setattr(
+        expert_swap_module,
+        "_PLACEMOE_RUNTIME_CONFIG",
+        replace(config, calibration=replace(config.calibration, auto_generate=False)),
+    )
 
     manager = ExpertSwapManager(
         ep_group=None,
@@ -237,9 +238,12 @@ def test_zero_replica_hot_update_constructs_manager_and_seeds_mapping(monkeypatc
 
 def test_zero_replica_cost_model_calibration_accepts_current_joint(monkeypatch) -> None:
     monkeypatch.setattr(expert_swap_module, "_HOT_UPDATE", False)
-    monkeypatch.setattr(expert_swap_module, "_COST_MODEL_VERIFY", True)
-    monkeypatch.setattr(expert_swap_module, "_FORWARD_REUSE_COVER", False)
-    monkeypatch.setattr(expert_swap_module, "_ONLINE_FREEZE_COST_MODE", "off")
+    config = expert_swap_module._PLACEMOE_RUNTIME_CONFIG
+    monkeypatch.setattr(
+        expert_swap_module,
+        "_PLACEMOE_RUNTIME_CONFIG",
+        replace(config, calibration=replace(config.calibration, auto_generate=True)),
+    )
 
     manager = ExpertSwapManager(
         ep_group=None,
@@ -270,7 +274,12 @@ def test_rank_only_replication_keeps_gradient_overlap_without_fixed_pipeline(mon
         lambda *_args, **_kwargs: gradient_group,
     )
     monkeypatch.setattr(expert_swap_module, "_HOT_UPDATE", False)
-    monkeypatch.setattr(expert_swap_module, "_COST_MODEL_VERIFY", False)
+    config = expert_swap_module._PLACEMOE_RUNTIME_CONFIG
+    monkeypatch.setattr(
+        expert_swap_module,
+        "_PLACEMOE_RUNTIME_CONFIG",
+        replace(config, calibration=replace(config.calibration, auto_generate=False)),
+    )
 
     manager = ExpertSwapManager(
         ep_group=ep_group,
@@ -295,9 +304,12 @@ def test_rank_only_replication_keeps_gradient_overlap_without_fixed_pipeline(mon
 
 def test_rank_only_cost_model_collects_direct_a2a_observations(monkeypatch) -> None:
     monkeypatch.setattr(expert_swap_module, "_HOT_UPDATE", False)
-    monkeypatch.setattr(expert_swap_module, "_COST_MODEL_VERIFY", True)
-    monkeypatch.setattr(expert_swap_module, "_FORWARD_REUSE_COVER", False)
-    monkeypatch.setattr(expert_swap_module, "_ONLINE_FREEZE_COST_MODE", "off")
+    config = expert_swap_module._PLACEMOE_RUNTIME_CONFIG
+    monkeypatch.setattr(
+        expert_swap_module,
+        "_PLACEMOE_RUNTIME_CONFIG",
+        replace(config, calibration=replace(config.calibration, auto_generate=True)),
+    )
     monkeypatch.setattr(runtime_calibration, "synchronize", lambda: None)
     manager = ExpertSwapManager(
         ep_group=None,
@@ -314,6 +326,7 @@ def test_rank_only_cost_model_collects_direct_a2a_observations(monkeypatch) -> N
         expert_swap_selector="current_joint",
         fixed_pipeline_overlap=False,
     )
+    manager._calibration_warmup_steps = 1
     manager.register_layer("layers.0.mlp.experts", _SingleRankExperts())
     layer = manager.layers["layers.0.mlp.experts"]
     routes = torch.tensor([[0], [1]], dtype=torch.long)
@@ -367,3 +380,50 @@ def test_calibration_cost_rejects_nonpositive_smoothing(gamma):
             slots_per_rank=2,
             smooth_max_gamma=gamma,
         )
+
+
+@pytest.mark.parametrize("mode,swaps,replicas", [("layer", 0, 0), ("step", 1, 0), ("step", 0, 1)])
+def test_retired_search_rejected_before_runtime_allocation(mode, swaps, replicas):
+    with pytest.raises(ValueError, match="Historical online search was removed"):
+        ExpertSwapManager(
+            ep_group=None,
+            ep_size=1,
+            ep_rank=0,
+            expert_swap_interval=1,
+            expert_swap_max_pairs_per_layer=swaps,
+            redundant_slot_increment_per_device=0,
+            max_replica_rounds=replicas,
+            smooth_max_gamma=10.0,
+            hierarchy=None,
+            perf_model=None,
+            expert_swap_mode=mode,
+        )
+
+
+def test_old_quota_checkpoint_rejected_without_changing_layout():
+    module = _SplitProjectionExperts()
+    expand_redundant_expert_slots(module, ep_size=2, redundant_slot_increment_per_device=1)
+    manager = _manager()
+    manager.register_layer("experts", module)
+    before = manager.state_dict()
+    checkpoint = manager.state_dict()
+    checkpoint["layers"]["experts"]["quota_policy"] = [[0, 0, 1, 0, 1]]
+    with pytest.raises(ValueError, match="Historical quota checkpoints were removed"):
+        manager.load_state_dict(checkpoint)
+    assert manager.state_dict() == before
+
+
+def test_standalone_model_calibration_keeps_fit_and_validation_schedule(monkeypatch):
+    monkeypatch.setattr(expert_swap_module, "_CALIBRATION_ONLY", True)
+    monkeypatch.setattr(expert_swap_module, "_CALIBRATION_STEP", 2)
+    monkeypatch.setattr(expert_swap_module, "_CALIBRATION_VALIDATION_STEPS", 3)
+    monkeypatch.setattr(expert_swap_module, "_HOT_UPDATE", False)
+    manager = _manager()
+    assert not manager._auto_calibration
+    assert manager._cost_model_verify and manager._export_cost_model_samples
+    assert manager._calibration_warmup_steps == 2
+    assert manager._cost_model_validation_steps == 3
+    calls = []
+    manager._run_cost_model_verification = lambda layers, step: calls.append(step) or "calibration"
+    assert manager.maybe_swap(2) == "calibration"
+    assert calls == [2]

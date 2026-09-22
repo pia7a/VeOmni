@@ -114,3 +114,26 @@ def test_composed_trainers_reject_placemoe_without_lifecycle_support(trainer):
 
     with pytest.raises(ValueError, match="PlaceMoE is not supported"):
         trainer(args)
+
+
+def test_dispatch_autograd_hooks_preserve_gradient_window_order(monkeypatch):
+    import torch
+
+    from veomni.distributed.moe.hiermoe import all_to_all
+
+    events = []
+    manager = SimpleNamespace(
+        gradient_overlap_enabled=True,
+        has_layer=lambda key: key == "experts",
+        close_pipeline_gradient_window_before_dispatch=lambda key: events.append(("close", key)),
+        open_pipeline_gradient_window_after_dispatch=lambda key: events.append(("open", key)),
+    )
+    monkeypatch.setattr(all_to_all, "get_hiermoe_state", lambda: SimpleNamespace(expert_swap_manager=manager))
+    inputs = torch.tensor([1.0, 2.0], requires_grad=True)
+    dispatch_input = all_to_all._mark_fixed_pipeline_dispatch_input(inputs, "experts")
+    dispatch_output, _, _ = all_to_all._mark_fixed_pipeline_dispatch_output(
+        (dispatch_input * 2, None, None), "experts"
+    )
+    dispatch_output.sum().backward()
+    assert events == [("close", "experts"), ("open", "experts")]
+    torch.testing.assert_close(inputs.grad, torch.tensor([2.0, 2.0]))
