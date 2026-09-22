@@ -16,7 +16,7 @@ import torch.distributed as dist
 from ....utils.accelerator_timing import AcceleratorEvent, record_accelerator_event
 from ....utils.device import get_device_type, synchronize
 from . import runtime_settings as settings
-from .greedy_planner import GreedyCommunicationPlanner
+from .calibration_cost import CalibrationCostModel
 from .placemoe.runtime import PlaceMoECalibration
 from .runtime_settings import _env_flag, logger
 from .runtime_tensors import _local_tensor_view, _placement_group_boolean_consensus
@@ -318,7 +318,7 @@ class CalibrationMixin:
         local_expert_token_rows: list[torch.Tensor] = []
         row_layer_indices: list[int] = []
         row_call_indices: list[int] = []
-        layer_row_ranges: list[tuple[GreedyCommunicationPlanner, int, int]] = []
+        layer_row_ranges: list[tuple[CalibrationCostModel, int, int]] = []
         row_start = 0
         if int(self.hierarchy.selected_dim) == 3:
             communication_event_names = (
@@ -342,16 +342,14 @@ class CalibrationMixin:
                 for timing in timings
             ):
                 raise RuntimeError(f"Cost-model verification found an invalid timing event in {layer.key}.")
-            planner = self._planner_for_layer(
-                layer,
-                communication_scale=1.0,
-                forward_compute_per_assignment=0.0,
-                forward_compute_constant=0.0,
+            planner = CalibrationCostModel(
+                hierarchy=self.hierarchy,
+                perf_model=self.perf_model,
+                hidden_size=layer.latest_hidden_size,
+                bytes_per_element=layer.latest_bytes_per_element,
+                slots_per_rank=layer.num_local_experts,
+                smooth_max_gamma=self.smooth_max_gamma,
             )
-            if not isinstance(planner, GreedyCommunicationPlanner):
-                # Cost verification needs the exact hierarchical traffic
-                # feature extractor, independently of the runtime selector.
-                planner = self._cpu_exact_planner_for_layer(layer)
             routes = [self._routes_for_cost_model_planner(layer, timing.physical_routes) for timing in timings]
             if all(route.shape == routes[0].shape for route in routes):
                 stacked_routes = torch.stack(routes, dim=0)
@@ -1538,30 +1536,3 @@ class CalibrationMixin:
         elapsed_ms = (time.perf_counter() - started) * 1000.0
         self._accumulate_metric("hiermoe/placement_calibration_ms", elapsed_ms)
         self._accumulate_metric("hiermoe/placement_calibrated_layers", updated)
-
-    def _cpu_exact_planner_for_layer(self, layer: ExpertLayerState) -> GreedyCommunicationPlanner:
-        """Build the same exact scorer as the fixed-pipeline NPU backend on CPU."""
-
-        return GreedyCommunicationPlanner(
-            hierarchy=self.hierarchy,
-            perf_model=self.perf_model,
-            hidden_size=layer.latest_hidden_size,
-            bytes_per_element=layer.latest_bytes_per_element,
-            slots_per_rank=layer.num_local_experts,
-            communication_scale=1.0,
-            forward_compute_per_assignment=0.0,
-            forward_compute_constant=0.0,
-            smooth_max_gamma=self.smooth_max_gamma,
-            reducer=None,
-            candidate_chunk_size=settings._SWAP_COST_CHUNK_CANDIDATES,
-            process_group=None,
-            max_copies=self.greedy_max_copies_per_expert,
-            assume_unique_routes=True,
-            layer_parallel_streams=settings._GREEDY_LAYER_PARALLEL_STREAMS,
-            adaptive_topk=False,
-            adaptive_topk_initial=settings._GREEDY_ADAPTIVE_TOPK_INITIAL,
-            adaptive_topk_strict_certificate=False,
-            exact_primitive_topk=0,
-            post_shortlist_compact_pair=False,
-            exact_primitive_max_only=False,
-        )

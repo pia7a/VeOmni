@@ -124,7 +124,6 @@ class PipelineMixin:
         self._pipeline_num_micro_steps = max(1, int(num_micro_steps))
         if int(micro_step) != 0:
             return
-        self._debug_log_redundant_copy_stats("step_begin", include_grads=False)
         self._begin_metrics_step(step)
         with self._pipeline_lock:
             if self._pipeline_grad_futures:

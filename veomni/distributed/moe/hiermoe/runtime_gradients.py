@@ -314,7 +314,6 @@ class GradientsMixin:
         with self._pipeline_lock:
             self._pipeline_grad_window_waited.clear()
             self._pipeline_grad_window_exposed_ms = 0.0
-        self._debug_log_redundant_copy_stats("after_grad_sync", include_grads=True)
         self._clear_accumulated_token_counts()
 
     @staticmethod
@@ -1045,7 +1044,6 @@ class GradientsMixin:
         jobs = 0
         with _full_timing_range("hiermoe_redundant_grad_sync"):
             self._zero_inactive_slot_grads()
-            self._debug_log_redundant_copy_stats("before_grad_sync", include_grads=True)
             for layer in self.layers.values():
                 if layer.slot_to_logical is None:
                     continue
@@ -1058,7 +1056,6 @@ class GradientsMixin:
                     self._sync_pairwise_replica_gradients(schedule, contributions)
                 else:
                     self._sync_owner_replica_gradients(schedule, contributions)
-            self._debug_log_redundant_copy_stats("after_grad_sync", include_grads=True)
             self._clear_accumulated_token_counts()
         if self.fixed_pipeline_overlap:
             elapsed_ms = (time.perf_counter() - started) * 1000.0

@@ -7,7 +7,6 @@ from collections import defaultdict
 from typing import Any
 
 import torch
-import torch.distributed as dist
 from torch import nn
 
 from placemoe.model_adapter import resolve_moe_model_adapter
@@ -23,126 +22,6 @@ from .runtime_types import ExpertLayerState, _canonical_physical_slots, _CoverTe
 
 class RoutingMixin:
     """Expert registration and logical-to-physical dispatch mapping."""
-
-    def _debug_should_log_copy_stats(self, layer_key: str) -> bool:
-        if not settings._DEBUG_REDUNDANT_COPY_STATS:
-            return False
-        layer_keys = sorted(key for key, layer in self.layers.items() if layer.slot_layout_enabled)
-        return layer_key in set(layer_keys[: settings._DEBUG_REDUNDANT_COPY_STATS_MAX_LAYERS])
-
-    @staticmethod
-    def _debug_slot_stats(tensor: torch.Tensor, local_slot: int) -> torch.Tensor:
-        local = _local_tensor_view(tensor).detach()
-        values = local[int(local_slot)].to(dtype=torch.float32)
-        if values.numel() == 0:
-            zero = torch.zeros((), dtype=torch.float32, device=values.device)
-            return torch.stack((zero, zero, zero, zero))
-        return torch.stack((values.sum(), values.square().sum(), values.abs().max(), values.mean()))
-
-    def _debug_global_slot_stats(self, tensor: torch.Tensor, layer: ExpertLayerState, slot: int) -> torch.Tensor:
-        local = _local_tensor_view(tensor)
-        stats = torch.zeros((4,), dtype=torch.float32, device=local.device)
-        slot_rank, local_slot = divmod(int(slot), layer.num_local_experts)
-        if self.ep_rank == slot_rank:
-            stats = self._debug_slot_stats(tensor, local_slot)
-        if self.ep_group is not None and self.ep_size > 1:
-            dist.all_reduce(stats, op=dist.ReduceOp.SUM, group=self.ep_group)
-        return stats
-
-    def _debug_copy_group_stat_delta(
-        self,
-        tensor: torch.Tensor,
-        layer: ExpertLayerState,
-        slots: tuple[int, ...],
-    ) -> float:
-        ref_stats: torch.Tensor | None = None
-        max_delta = 0.0
-        for slot in slots:
-            stats = self._debug_global_slot_stats(tensor, layer, int(slot))
-            if ref_stats is None:
-                ref_stats = stats
-                continue
-            delta = float((stats - ref_stats).abs().max().detach().cpu().item())
-            max_delta = max(max_delta, delta)
-        return max_delta
-
-    def _debug_global_accumulated_counts(self, layer: ExpertLayerState) -> torch.Tensor:
-        local_device = _local_tensor_view(layer.primary_parameter).device
-        counts = layer.accumulated_tokens_per_local_expert
-        if counts is None or counts.ndim != 1 or int(counts.numel()) != int(layer.num_local_experts):
-            local_counts = torch.zeros((layer.num_local_experts,), dtype=torch.float32, device=local_device)
-        else:
-            local_counts = counts.detach().to(device=local_device, dtype=torch.float32)
-        if self.ep_group is None or self.ep_size <= 1:
-            return local_counts.detach().cpu()
-        gathered = torch.empty(
-            (self.ep_size * layer.num_local_experts,),
-            dtype=torch.float32,
-            device=local_device,
-        )
-        dist.all_gather_into_tensor(gathered, local_counts.contiguous(), group=self.ep_group)
-        return gathered.detach().cpu()
-
-    def _debug_log_redundant_copy_stats(
-        self,
-        phase: str,
-        *,
-        layer_key: str | None = None,
-        layer: ExpertLayerState | None = None,
-        include_grads: bool = False,
-    ) -> None:
-        if not settings._DEBUG_REDUNDANT_COPY_STATS:
-            return
-        if layer_key is not None and layer is not None:
-            items = [(layer_key, layer)] if self._debug_should_log_copy_stats(layer_key) else []
-        else:
-            items = [
-                (key, candidate)
-                for key, candidate in sorted(self.layers.items())
-                if self._debug_should_log_copy_stats(key)
-            ]
-
-        for key, candidate in items:
-            groups = candidate.redundant_copy_groups()[: settings._DEBUG_REDUNDANT_COPY_STATS_MAX_GROUPS]
-            if not groups:
-                continue
-            param_delta = 0.0
-            grad_delta = 0.0
-            grad_groups = 0
-            global_counts = self._debug_global_accumulated_counts(candidate) if include_grads else None
-            worst_grad_logical = -1
-            worst_grad_slots: tuple[int, ...] = ()
-            worst_grad_counts: tuple[float, ...] = ()
-            for _logical_expert, slots in groups:
-                for _param_name, param in candidate.named_expert_parameters():
-                    param_delta = max(param_delta, self._debug_copy_group_stat_delta(param, candidate, slots))
-                    grad = getattr(param, "grad", None)
-                    if not include_grads or not torch.is_tensor(grad):
-                        continue
-                    if tuple(_local_tensor_view(grad).shape) != tuple(_local_tensor_view(param).shape):
-                        continue
-                    group_grad_delta = self._debug_copy_group_stat_delta(grad, candidate, slots)
-                    grad_delta = max(grad_delta, group_grad_delta)
-                    grad_groups += 1
-                    if group_grad_delta >= grad_delta and global_counts is not None:
-                        worst_grad_logical = int(_logical_expert)
-                        worst_grad_slots = tuple(int(slot) for slot in slots)
-                        worst_grad_counts = tuple(float(global_counts[int(slot)].item()) for slot in slots)
-            if self.ep_rank == 0:
-                logger.warning(
-                    "HierMoE redundant copy stats phase=%s layer=%s groups=%s "
-                    "param_stat_delta=%.6g grad_stat_delta=%.6g grad_groups=%s "
-                    "worst_grad_logical=%s worst_grad_slots=%s worst_grad_counts=%s",
-                    phase,
-                    key,
-                    len(groups),
-                    param_delta,
-                    grad_delta,
-                    grad_groups,
-                    worst_grad_logical,
-                    worst_grad_slots,
-                    worst_grad_counts,
-                )
 
     def register_model(self, model: nn.Module) -> None:
         matched_layers = 0

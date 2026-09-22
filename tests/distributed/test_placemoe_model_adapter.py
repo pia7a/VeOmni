@@ -21,6 +21,7 @@ from torch import nn
 from placemoe import register_moe_model_adapter, resolve_moe_model_adapter
 from veomni.distributed.moe.hiermoe import expert_swap, runtime_calibration
 from veomni.distributed.moe.hiermoe import runtime_settings as expert_swap_module
+from veomni.distributed.moe.hiermoe.calibration_cost import CalibrationCostModel
 from veomni.distributed.moe.hiermoe.expert_swap import ExpertSwapManager, expand_redundant_expert_slots
 from veomni.distributed.moe.hiermoe.perf_model import HierMoEPerfModel
 from veomni.distributed.moe.hiermoe.topology import Hierarchy
@@ -111,7 +112,14 @@ def test_cost_model_normalizes_compact_identity_routes_for_expanded_slots() -> N
     planner_routes = manager._routes_for_cost_model_planner(layer, compact_routes)
 
     assert planner_routes.flatten().tolist() == [0, 1, 3, 4]
-    planner = manager._cpu_exact_planner_for_layer(layer)
+    planner = CalibrationCostModel(
+        hierarchy=manager.hierarchy,
+        perf_model=manager.perf_model,
+        hidden_size=layer.latest_hidden_size,
+        bytes_per_element=layer.latest_bytes_per_element,
+        slots_per_rank=layer.num_local_experts,
+        smooth_max_gamma=manager.smooth_max_gamma,
+    )
     assignment_counts = planner._local_packed_assignment_counts(planner_routes)
     assert assignment_counts[:, : manager.ep_size].tolist() == [[2.0, 2.0]]
 
@@ -346,3 +354,16 @@ def test_rank_only_cost_model_collects_direct_a2a_observations(monkeypatch) -> N
     assert alignment["destination_assignment_totals"] == pytest.approx([2.0])
     assert alignment["destination_rank_mismatch_counts"] == [0]
     assert alignment["destination_rank_max_abs_deltas"] == pytest.approx([0.0])
+
+
+@pytest.mark.parametrize("gamma", [0.0, -1.0])
+def test_calibration_cost_rejects_nonpositive_smoothing(gamma):
+    with pytest.raises(ValueError, match="smooth_max_gamma must be positive"):
+        CalibrationCostModel(
+            hierarchy=Hierarchy(ep_size=1, group_sizes=(1,), source="test"),
+            perf_model=HierMoEPerfModel.default(),
+            hidden_size=8,
+            bytes_per_element=2,
+            slots_per_rank=2,
+            smooth_max_gamma=gamma,
+        )
