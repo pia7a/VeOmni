@@ -1,0 +1,770 @@
+{
+  "config": {
+    "mode": "hierarchical",
+    "tokens": 32768,
+    "hidden": 4096,
+    "intermediate": 1536,
+    "experts": 128,
+    "top_k": 8,
+    "warmup": 1,
+    "iterations": 1,
+    "output": "/experiment/diagnose-before.json",
+    "save_tensors": null,
+    "memory_fraction": 1.0,
+    "diagnose": true
+  },
+  "ranks": [
+    {
+      "rank": 0,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 243.2743776589632,
+          "backward_ms": 273.6789444461465,
+          "total_ms": 516.9533221051097,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 13.30821418762207,
+          "peak_gib": 14.718921184539795,
+          "reserved_peak_gib": 17.34765625,
+          "stages": [
+            {
+              "name": "rank_dedup_dispatch",
+              "before_gib": 1.0649447441101074,
+              "after_gib": 3.0737686157226562,
+              "peak_gib": 6.759967803955078,
+              "input_shape": null
+            },
+            {
+              "name": "npu_group_gemm",
+              "before_gib": 3.0737686157226562,
+              "after_gib": 4.569862365722656,
+              "peak_gib": 4.585488319396973,
+              "input_shape": [
+                261448,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "before_gib": 4.569862365722656,
+              "after_gib": 5.317871570587158,
+              "peak_gib": 5.333497047424316,
+              "input_shape": [
+                261448,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "before_gib": 5.317871570587158,
+              "after_gib": 7.312561988830566,
+              "peak_gib": 7.328187942504883,
+              "input_shape": [
+                261448,
+                1536
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 9.307252407073975,
+              "after_gib": 10.641236782073975,
+              "peak_gib": 13.30821418762207,
+              "input_shape": [
+                261448,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 8.644433498382568,
+              "after_gib": 9.14293098449707,
+              "peak_gib": 10.657543182373047,
+              "input_shape": [
+                174571,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 7.811227321624756,
+              "after_gib": 8.061227798461914,
+              "peak_gib": 9.324671268463135,
+              "input_shape": [
+                65361,
+                4096
+              ]
+            },
+            {
+              "name": "rank_dedup_combine",
+              "before_gib": 7.312561988830566,
+              "after_gib": 7.562562465667725,
+              "peak_gib": 13.30821418762207,
+              "input_shape": [
+                261448,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 1,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 242.49029718339443,
+          "backward_ms": 274.49412643909454,
+          "total_ms": 516.984423622489,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 13.33535099029541,
+          "peak_gib": 14.750604629516602,
+          "reserved_peak_gib": 17.38671875,
+          "stages": [
+            {
+              "name": "rank_dedup_dispatch",
+              "before_gib": 1.0649447441101074,
+              "after_gib": 3.0793771743774414,
+              "peak_gib": 6.772734642028809,
+              "input_shape": null
+            },
+            {
+              "name": "npu_group_gemm",
+              "before_gib": 3.0793771743774414,
+              "after_gib": 4.579589366912842,
+              "peak_gib": 4.595215320587158,
+              "input_shape": [
+                262181,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "before_gib": 4.579589366912842,
+              "after_gib": 5.329695701599121,
+              "peak_gib": 5.345321178436279,
+              "input_shape": [
+                262181,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "before_gib": 5.329695701599121,
+              "after_gib": 7.3299784660339355,
+              "peak_gib": 7.345604419708252,
+              "input_shape": [
+                262181,
+                1536
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 9.33026123046875,
+              "after_gib": 10.66529130935669,
+              "peak_gib": 13.33535099029541,
+              "input_shape": [
+                262181,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 8.666168212890625,
+              "after_gib": 9.16461992263794,
+              "peak_gib": 10.679186344146729,
+              "input_shape": [
+                175137,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 7.828483581542969,
+              "after_gib": 8.078484058380127,
+              "peak_gib": 9.341606616973877,
+              "input_shape": [
+                65340,
+                4096
+              ]
+            },
+            {
+              "name": "rank_dedup_combine",
+              "before_gib": 7.3299784660339355,
+              "after_gib": 7.579978942871094,
+              "peak_gib": 13.33535099029541,
+              "input_shape": [
+                262181,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 246.32138386368752,
+          "backward_ms": 270.9397990256548,
+          "total_ms": 517.2611828893423,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 13.320179462432861,
+          "peak_gib": 14.73503589630127,
+          "reserved_peak_gib": 17.36328125,
+          "stages": [
+            {
+              "name": "rank_dedup_dispatch",
+              "before_gib": 1.0649447441101074,
+              "after_gib": 3.0771374702453613,
+              "peak_gib": 6.768101215362549,
+              "input_shape": null
+            },
+            {
+              "name": "npu_group_gemm",
+              "before_gib": 3.0771374702453613,
+              "after_gib": 4.575387001037598,
+              "peak_gib": 4.591012954711914,
+              "input_shape": [
+                261838,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "before_gib": 4.575387001037598,
+              "after_gib": 5.324512004852295,
+              "peak_gib": 5.340137481689453,
+              "input_shape": [
+                261838,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "before_gib": 5.324512004852295,
+              "after_gib": 7.322558879852295,
+              "peak_gib": 7.338184833526611,
+              "input_shape": [
+                261838,
+                1536
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 9.320605754852295,
+              "after_gib": 10.653797149658203,
+              "peak_gib": 13.320179462432861,
+              "input_shape": [
+                261838,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 8.659015655517578,
+              "after_gib": 9.15757417678833,
+              "peak_gib": 10.672247409820557,
+              "input_shape": [
+                175172,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 7.821033477783203,
+              "after_gib": 8.071033954620361,
+              "peak_gib": 9.334095478057861,
+              "input_shape": [
+                65336,
+                4096
+              ]
+            },
+            {
+              "name": "rank_dedup_combine",
+              "before_gib": 7.322558879852295,
+              "after_gib": 7.572559356689453,
+              "peak_gib": 13.320179462432861,
+              "input_shape": [
+                261838,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 247.53636587411165,
+          "backward_ms": 269.6884674951434,
+          "total_ms": 517.2248333692551,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 13.351892948150635,
+          "peak_gib": 14.771159648895264,
+          "reserved_peak_gib": 17.400390625,
+          "stages": [
+            {
+              "name": "rank_dedup_dispatch",
+              "before_gib": 1.0649447441101074,
+              "after_gib": 3.0832695960998535,
+              "peak_gib": 6.770269393920898,
+              "input_shape": null
+            },
+            {
+              "name": "npu_group_gemm",
+              "before_gib": 3.0832695960998535,
+              "after_gib": 4.5871758460998535,
+              "peak_gib": 4.60280179977417,
+              "input_shape": [
+                262690,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "before_gib": 4.5871758460998535,
+              "after_gib": 5.338738441467285,
+              "peak_gib": 5.354363918304443,
+              "input_shape": [
+                262690,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "before_gib": 5.338738441467285,
+              "after_gib": 7.342904567718506,
+              "peak_gib": 7.358530521392822,
+              "input_shape": [
+                262690,
+                1536
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 9.347070693969727,
+              "after_gib": 10.681971073150635,
+              "peak_gib": 13.351892948150635,
+              "input_shape": [
+                262690,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 8.674997329711914,
+              "after_gib": 9.173532962799072,
+              "peak_gib": 10.688183307647705,
+              "input_shape": [
+                174600,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 7.841272354125977,
+              "after_gib": 8.091272830963135,
+              "peak_gib": 9.35412073135376,
+              "input_shape": [
+                65322,
+                4096
+              ]
+            },
+            {
+              "name": "rank_dedup_combine",
+              "before_gib": 7.342904567718506,
+              "after_gib": 7.592905044555664,
+              "peak_gib": 13.351892948150635,
+              "input_shape": [
+                262690,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 242.3086166381836,
+          "backward_ms": 274.6521858498454,
+          "total_ms": 516.960802488029,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 13.320085048675537,
+          "peak_gib": 14.73565149307251,
+          "reserved_peak_gib": 17.37109375,
+          "stages": [
+            {
+              "name": "rank_dedup_dispatch",
+              "before_gib": 1.0649447441101074,
+              "after_gib": 3.0772485733032227,
+              "peak_gib": 6.768507957458496,
+              "input_shape": null
+            },
+            {
+              "name": "npu_group_gemm",
+              "before_gib": 3.0772485733032227,
+              "after_gib": 4.575864315032959,
+              "peak_gib": 4.591490268707275,
+              "input_shape": [
+                261902,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "before_gib": 4.575864315032959,
+              "after_gib": 5.325172424316406,
+              "peak_gib": 5.3407979011535645,
+              "input_shape": [
+                261902,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "before_gib": 5.325172424316406,
+              "after_gib": 7.323326587677002,
+              "peak_gib": 7.338952541351318,
+              "input_shape": [
+                261902,
+                1536
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 9.321480751037598,
+              "after_gib": 10.654069423675537,
+              "peak_gib": 13.320085048675537,
+              "input_shape": [
+                261902,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 8.661492347717285,
+              "after_gib": 9.15995168685913,
+              "peak_gib": 10.674525737762451,
+              "input_shape": [
+                175396,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 7.82161808013916,
+              "after_gib": 8.071618556976318,
+              "peak_gib": 9.334313869476318,
+              "input_shape": [
+                65312,
+                4096
+              ]
+            },
+            {
+              "name": "rank_dedup_combine",
+              "before_gib": 7.323326587677002,
+              "after_gib": 7.57332706451416,
+              "peak_gib": 13.320085048675537,
+              "input_shape": [
+                261902,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 5,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 242.79701709747314,
+          "backward_ms": 274.42246675491333,
+          "total_ms": 517.2194838523865,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 13.327853679656982,
+          "peak_gib": 14.74502944946289,
+          "reserved_peak_gib": 17.3671875,
+          "stages": [
+            {
+              "name": "rank_dedup_dispatch",
+              "before_gib": 1.0649447441101074,
+              "after_gib": 3.079092502593994,
+              "peak_gib": 6.764613151550293,
+              "input_shape": null
+            },
+            {
+              "name": "npu_group_gemm",
+              "before_gib": 3.079092502593994,
+              "after_gib": 4.579092502593994,
+              "peak_gib": 4.5947184562683105,
+              "input_shape": [
+                262116,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "before_gib": 4.579092502593994,
+              "after_gib": 5.329012870788574,
+              "peak_gib": 5.344638347625732,
+              "input_shape": [
+                262116,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "before_gib": 5.329012870788574,
+              "after_gib": 7.329012870788574,
+              "peak_gib": 7.344638824462891,
+              "input_shape": [
+                262116,
+                1536
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 9.329012870788574,
+              "after_gib": 10.661838054656982,
+              "peak_gib": 13.327853679656982,
+              "input_shape": [
+                262116,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 8.661876201629639,
+              "after_gib": 9.16030502319336,
+              "peak_gib": 10.674848556518555,
+              "input_shape": [
+                174701,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 7.827388286590576,
+              "after_gib": 8.077388763427734,
+              "peak_gib": 9.340251922607422,
+              "input_shape": [
+                65323,
+                4096
+              ]
+            },
+            {
+              "name": "rank_dedup_combine",
+              "before_gib": 7.329012870788574,
+              "after_gib": 7.579013347625732,
+              "peak_gib": 13.327853679656982,
+              "input_shape": [
+                262116,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 6,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 246.50581367313862,
+          "backward_ms": 270.6569693982601,
+          "total_ms": 517.1627830713987,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 13.381386280059814,
+          "peak_gib": 14.801469326019287,
+          "reserved_peak_gib": 17.43359375,
+          "stages": [
+            {
+              "name": "rank_dedup_dispatch",
+              "before_gib": 1.0649447441101074,
+              "after_gib": 3.087822914123535,
+              "peak_gib": 6.781427383422852,
+              "input_shape": null
+            },
+            {
+              "name": "npu_group_gemm",
+              "before_gib": 3.087822914123535,
+              "after_gib": 4.5943522453308105,
+              "peak_gib": 4.609978199005127,
+              "input_shape": [
+                263285,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "before_gib": 4.5943522453308105,
+              "after_gib": 5.347617149353027,
+              "peak_gib": 5.3632426261901855,
+              "input_shape": [
+                263285,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "before_gib": 5.347617149353027,
+              "after_gib": 7.356322765350342,
+              "peak_gib": 7.371948719024658,
+              "input_shape": [
+                263285,
+                1536
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 9.365028381347656,
+              "after_gib": 10.703651905059814,
+              "peak_gib": 13.381386280059814,
+              "input_shape": [
+                263285,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 8.691032409667969,
+              "after_gib": 9.189476490020752,
+              "peak_gib": 10.70403528213501,
+              "input_shape": [
+                174943,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 7.854850769042969,
+              "after_gib": 8.104851245880127,
+              "peak_gib": 9.368020057678223,
+              "input_shape": [
+                65343,
+                4096
+              ]
+            },
+            {
+              "name": "rank_dedup_combine",
+              "before_gib": 7.356322765350342,
+              "after_gib": 7.6063232421875,
+              "peak_gib": 13.381386280059814,
+              "input_shape": [
+                263285,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 7,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 248.8370891660452,
+          "backward_ms": 268.3502836152911,
+          "total_ms": 517.1873727813363,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 13.323307514190674,
+          "peak_gib": 14.733922958374023,
+          "reserved_peak_gib": 17.365234375,
+          "stages": [
+            {
+              "name": "rank_dedup_dispatch",
+              "before_gib": 1.0649447441101074,
+              "after_gib": 3.075636863708496,
+              "peak_gib": 6.7663164138793945,
+              "input_shape": null
+            },
+            {
+              "name": "npu_group_gemm",
+              "before_gib": 3.075636863708496,
+              "after_gib": 4.573683738708496,
+              "peak_gib": 4.5893096923828125,
+              "input_shape": [
+                261692,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "before_gib": 4.573683738708496,
+              "after_gib": 5.322391033172607,
+              "peak_gib": 5.338016510009766,
+              "input_shape": [
+                261692,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "before_gib": 5.322391033172607,
+              "after_gib": 7.318943023681641,
+              "peak_gib": 7.334568977355957,
+              "input_shape": [
+                261692,
+                1536
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 9.315495014190674,
+              "after_gib": 10.651432514190674,
+              "peak_gib": 13.323307514190674,
+              "input_shape": [
+                261692,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 8.653126239776611,
+              "after_gib": 9.15141773223877,
+              "peak_gib": 10.665823936462402,
+              "input_shape": [
+                174874,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "before_gib": 7.817402362823486,
+              "after_gib": 8.067402839660645,
+              "peak_gib": 9.33043384552002,
+              "input_shape": [
+                65334,
+                4096
+              ]
+            },
+            {
+              "name": "rank_dedup_combine",
+              "before_gib": 7.318943023681641,
+              "after_gib": 7.568943500518799,
+              "peak_gib": 13.323307514190674,
+              "input_shape": [
+                261692,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

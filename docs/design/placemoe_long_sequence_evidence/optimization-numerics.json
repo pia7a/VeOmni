@@ -1,0 +1,358 @@
+{
+  "hierarchical-small vs after-small": [
+    {
+      "output": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "input_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "routing_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w1_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w2_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      }
+    },
+    {
+      "output": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "input_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "routing_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w1_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w2_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      }
+    },
+    {
+      "output": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "input_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "routing_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w1_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w2_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      }
+    },
+    {
+      "output": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "input_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "routing_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w1_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w2_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      }
+    },
+    {
+      "output": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "input_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "routing_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w1_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w2_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      }
+    },
+    {
+      "output": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "input_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "routing_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w1_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w2_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      }
+    },
+    {
+      "output": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "input_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "routing_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w1_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w2_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      }
+    },
+    {
+      "output": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "input_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "routing_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w1_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w2_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      }
+    }
+  ],
+  "before-multichunk vs after-multichunk": [
+    {
+      "output": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "input_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "routing_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w1_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w2_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      }
+    },
+    {
+      "output": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "input_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "routing_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w1_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w2_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      }
+    },
+    {
+      "output": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "input_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "routing_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w1_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w2_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      }
+    },
+    {
+      "output": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "input_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "routing_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w1_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w2_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      }
+    },
+    {
+      "output": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "input_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "routing_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w1_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w2_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      }
+    },
+    {
+      "output": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "input_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "routing_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w1_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w2_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      }
+    },
+    {
+      "output": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "input_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "routing_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w1_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w2_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      }
+    },
+    {
+      "output": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "input_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "routing_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w1_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      },
+      "w2_grad": {
+        "equal": true,
+        "max_abs": 0.0
+      }
+    }
+  ]
+}

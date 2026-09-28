@@ -1,0 +1,138 @@
+{
+  "config": {
+    "mode": "hierarchical",
+    "tokens": 256,
+    "hidden": 512,
+    "intermediate": 256,
+    "experts": 128,
+    "top_k": 8,
+    "warmup": 1,
+    "iterations": 1,
+    "output": "/experiment/after-small.json",
+    "save_tensors": "/experiment/after-small",
+    "memory_fraction": 1.0,
+    "diagnose": false
+  },
+  "ranks": [
+    {
+      "rank": 0,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 25.35195741802454,
+          "backward_ms": 5.762419663369656,
+          "total_ms": 31.114377081394196,
+          "initial_gib": 0.012229442596435547,
+          "forward_peak_gib": 0.04322242736816406,
+          "peak_gib": 0.04577159881591797,
+          "reserved_peak_gib": 0.05859375
+        }
+      ]
+    },
+    {
+      "rank": 1,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 24.99017585068941,
+          "backward_ms": 6.58505130559206,
+          "total_ms": 31.57522715628147,
+          "initial_gib": 0.012229442596435547,
+          "forward_peak_gib": 0.04443931579589844,
+          "peak_gib": 0.04684782028198242,
+          "reserved_peak_gib": 0.076171875
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 24.45304486900568,
+          "backward_ms": 6.125170737504959,
+          "total_ms": 30.57821560651064,
+          "initial_gib": 0.012229442596435547,
+          "forward_peak_gib": 0.0445709228515625,
+          "peak_gib": 0.046900272369384766,
+          "reserved_peak_gib": 0.076171875
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 25.447817519307137,
+          "backward_ms": 6.0396213084459305,
+          "total_ms": 31.487438827753067,
+          "initial_gib": 0.012229442596435547,
+          "forward_peak_gib": 0.04313802719116211,
+          "peak_gib": 0.04577016830444336,
+          "reserved_peak_gib": 0.05859375
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 24.5731258764863,
+          "backward_ms": 5.832440219819546,
+          "total_ms": 30.405566096305847,
+          "initial_gib": 0.012229442596435547,
+          "forward_peak_gib": 0.04437875747680664,
+          "peak_gib": 0.04682111740112305,
+          "reserved_peak_gib": 0.076171875
+        }
+      ]
+    },
+    {
+      "rank": 5,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 25.411536917090416,
+          "backward_ms": 6.6993823274970055,
+          "total_ms": 32.11091924458742,
+          "initial_gib": 0.012229442596435547,
+          "forward_peak_gib": 0.04320478439331055,
+          "peak_gib": 0.045771121978759766,
+          "reserved_peak_gib": 0.060546875
+        }
+      ]
+    },
+    {
+      "rank": 6,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 24.95005540549755,
+          "backward_ms": 5.90113177895546,
+          "total_ms": 30.85118718445301,
+          "initial_gib": 0.012229442596435547,
+          "forward_peak_gib": 0.04285430908203125,
+          "peak_gib": 0.045708656311035156,
+          "reserved_peak_gib": 0.060546875
+        }
+      ]
+    },
+    {
+      "rank": 7,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 24.86506663262844,
+          "backward_ms": 6.058920174837112,
+          "total_ms": 30.923986807465553,
+          "initial_gib": 0.012229442596435547,
+          "forward_peak_gib": 0.0433201789855957,
+          "peak_gib": 0.04578351974487305,
+          "reserved_peak_gib": 0.060546875
+        }
+      ]
+    }
+  ]
+}

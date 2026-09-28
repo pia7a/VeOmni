@@ -1,0 +1,73 @@
+{
+  "baseline-16k": {
+    "median_max_rank_total_ms": 127.23537534475327,
+    "max_peak_gib": 5.950940132141113,
+    "max_forward_peak_gib": 5.950940132141113,
+    "max_reserved_peak_gib": 7.533203125
+  },
+  "baseline-32k": {
+    "median_max_rank_total_ms": 236.86926811933517,
+    "max_peak_gib": 11.354760646820068,
+    "max_forward_peak_gib": 11.354760646820068,
+    "max_reserved_peak_gib": 14.283203125
+  },
+  "before-16k": {
+    "median_max_rank_total_ms": 246.10947538167238,
+    "max_peak_gib": 7.92279577255249,
+    "max_forward_peak_gib": 7.310697078704834,
+    "max_reserved_peak_gib": 10.11328125
+  },
+  "before-32k": {
+    "median_max_rank_total_ms": 491.32074788212776,
+    "max_peak_gib": 14.801469326019287,
+    "max_forward_peak_gib": 13.381386280059814,
+    "max_reserved_peak_gib": 17.43359375
+  },
+  "dispatch-only-32k": {
+    "median_max_rank_total_ms": 478.9528651162982,
+    "max_peak_gib": 14.80241870880127,
+    "max_forward_peak_gib": 13.382335662841797,
+    "max_reserved_peak_gib": 17.43359375
+  },
+  "after-16k": {
+    "median_max_rank_total_ms": 216.84242133051157,
+    "max_peak_gib": 7.310697078704834,
+    "max_forward_peak_gib": 7.310697078704834,
+    "max_reserved_peak_gib": 10.11328125
+  },
+  "after-32k": {
+    "median_max_rank_total_ms": 419.9813362210989,
+    "max_peak_gib": 13.633881568908691,
+    "max_forward_peak_gib": 13.382335662841797,
+    "max_reserved_peak_gib": 17.43359375
+  },
+  "final-16k": {
+    "median_max_rank_total_ms": 222.5628299638629,
+    "max_peak_gib": 7.087249279022217,
+    "max_forward_peak_gib": 6.336106777191162,
+    "max_reserved_peak_gib": 9.111328125
+  },
+  "final-32k": {
+    "median_max_rank_total_ms": 428.549200296402,
+    "max_peak_gib": 13.633881568908691,
+    "max_forward_peak_gib": 11.749524593353271,
+    "max_reserved_peak_gib": 17.435546875
+  },
+  "optimized-16k": {
+    "median_max_rank_total_ms": 221.8427788466215,
+    "max_peak_gib": 6.001794815063477,
+    "max_forward_peak_gib": 5.47468900680542,
+    "max_reserved_peak_gib": 8.0234375
+  },
+  "optimized-32k": {
+    "median_max_rank_total_ms": 427.40383837372065,
+    "max_peak_gib": 11.20516586303711,
+    "max_forward_peak_gib": 10.202651023864746,
+    "max_reserved_peak_gib": 15.255859375
+  },
+  "source": {
+    "baseline_commit": "384b240",
+    "baseline_all_to_all_sha256": "48020e40a91e13d092ada8df9068c7f14bac075164700b94cc79ac1b54cd607f",
+    "optimized_all_to_all_sha256": "17bf0e219bf08ee90f38fed9c2f4065d8d12f1f35e0c89b285daf3efc0e216c9"
+  }
+}

@@ -1,0 +1,218 @@
+[
+  {
+    "output": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "input_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "routing_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "w1_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "w2_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    }
+  },
+  {
+    "output": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "input_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "routing_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "w1_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "w2_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    }
+  },
+  {
+    "output": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "input_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "routing_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "w1_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "w2_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    }
+  },
+  {
+    "output": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "input_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "routing_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "w1_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "w2_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    }
+  },
+  {
+    "output": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "input_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "routing_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "w1_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "w2_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    }
+  },
+  {
+    "output": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "input_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "routing_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "w1_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "w2_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    }
+  },
+  {
+    "output": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "input_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "routing_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "w1_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "w2_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    }
+  },
+  {
+    "output": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "input_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "routing_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "w1_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    },
+    "w2_grad": {
+      "equal": true,
+      "max_abs": 0.0,
+      "relative_l2": 0.0
+    }
+  }
+]

@@ -1,0 +1,26 @@
+<frozen runpy>:128: RuntimeWarning: 'torch.distributed.run' found in sys.modules after import of package 'torch.distributed', but prior to execution of 'torch.distributed.run'; this may result in unpredictable behaviour
+[INFO|/workspace/veomni/ops/__init__.py:72] 09/28/2026 07:22:32 >> ✅ VeOmni attention patches applied.
+[INFO|/workspace/veomni/__init__.py:25] 09/28/2026 07:22:32 >>
+========== Environment Variables ==========
+MODELING_BACKEND=veomni (source=default)
+===========================================
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4876: UserWarning: barrier(): using the device under current context. You can specify `device_id` in `init_process_group` to mute this warning.
+  warnings.warn(  # warn only once
+{"iteration": 0, "forward_ms": 2308.9936804026365, "backward_ms": 240.61759281903505, "total_ms": 2549.6112732216716, "initial_gib": 1.0649447441101074, "forward_peak_gib": 10.145337104797363, "peak_gib": 11.14179801940918, "reserved_peak_gib": 12.6875}
+{"iteration": 1, "forward_ms": 228.68595086038113, "backward_ms": 218.32582168281078, "total_ms": 447.0117725431919, "initial_gib": 1.0649447441101074, "forward_peak_gib": 10.145337104797363, "peak_gib": 11.14179801940918, "reserved_peak_gib": 12.6875}

@@ -1,0 +1,1130 @@
+{
+  "config": {
+    "mode": "baseline",
+    "tokens": 32768,
+    "hidden": 4096,
+    "intermediate": 1536,
+    "experts": 128,
+    "top_k": 8,
+    "warmup": 1,
+    "iterations": 2,
+    "output": "/experiment/diagnose-baseline.json",
+    "save_tensors": null,
+    "memory_fraction": 1.0,
+    "diagnose": true
+  },
+  "ranks": [
+    {
+      "rank": 0,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 129.50229831039906,
+          "backward_ms": 138.3582353591919,
+          "total_ms": 267.86053366959095,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 11.296985626220703,
+          "peak_gib": 11.296985626220703,
+          "reserved_peak_gib": 14.26953125,
+          "stages": [
+            {
+              "name": "alltoall_dispatch",
+              "elapsed_ms": 39.256482385098934,
+              "before_gib": 1.0649452209472656,
+              "after_gib": 3.063539505004883,
+              "peak_gib": 5.073855876922607,
+              "input_shape": [
+                32768,
+                4096
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 20.096387714147568,
+              "before_gib": 3.063539505004883,
+              "after_gib": 4.5595574378967285,
+              "peak_gib": 4.575183391571045,
+              "input_shape": [
+                261448,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 3.0427351593971252,
+              "before_gib": 4.5595574378967285,
+              "after_gib": 5.3076043128967285,
+              "peak_gib": 5.323229789733887,
+              "input_shape": [
+                261448,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 14.169315807521343,
+              "before_gib": 5.3076043128967285,
+              "after_gib": 7.302294731140137,
+              "peak_gib": 7.317920684814453,
+              "input_shape": [
+                261448,
+                1536
+              ]
+            },
+            {
+              "name": "alltoall_combine",
+              "elapsed_ms": 35.37463489919901,
+              "before_gib": 7.302294731140137,
+              "after_gib": 9.552295684814453,
+              "peak_gib": 11.296985626220703,
+              "input_shape": [
+                261448,
+                4096
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 2,
+          "forward_ms": 121.5000431984663,
+          "backward_ms": 137.23414298146963,
+          "total_ms": 258.73418617993593,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 11.296985626220703,
+          "peak_gib": 11.296985626220703,
+          "reserved_peak_gib": 14.26953125,
+          "stages": [
+            {
+              "name": "alltoall_dispatch",
+              "elapsed_ms": 33.66731200367212,
+              "before_gib": 1.0649452209472656,
+              "after_gib": 3.063539505004883,
+              "peak_gib": 5.073855876922607,
+              "input_shape": [
+                32768,
+                4096
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 20.009047351777554,
+              "before_gib": 3.063539505004883,
+              "after_gib": 4.5595574378967285,
+              "peak_gib": 4.575183391571045,
+              "input_shape": [
+                261448,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.402493730187416,
+              "before_gib": 4.5595574378967285,
+              "after_gib": 5.3076043128967285,
+              "peak_gib": 5.323229789733887,
+              "input_shape": [
+                261448,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 9.684458374977112,
+              "before_gib": 5.3076043128967285,
+              "after_gib": 7.302294731140137,
+              "peak_gib": 7.317920684814453,
+              "input_shape": [
+                261448,
+                1536
+              ]
+            },
+            {
+              "name": "alltoall_combine",
+              "elapsed_ms": 37.400088272988796,
+              "before_gib": 7.302294731140137,
+              "after_gib": 9.552295684814453,
+              "peak_gib": 11.296985626220703,
+              "input_shape": [
+                261448,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 1,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 126.54570303857327,
+          "backward_ms": 138.41812498867512,
+          "total_ms": 264.9638280272484,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 11.320016384124756,
+          "peak_gib": 11.320016384124756,
+          "reserved_peak_gib": 12.2890625,
+          "stages": [
+            {
+              "name": "alltoall_dispatch",
+              "elapsed_ms": 37.83794958144426,
+              "before_gib": 1.0649452209472656,
+              "after_gib": 3.069131851196289,
+              "peak_gib": 5.08504056930542,
+              "input_shape": [
+                32768,
+                4096
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 20.383858121931553,
+              "before_gib": 3.069131851196289,
+              "after_gib": 4.5693440437316895,
+              "peak_gib": 4.584969997406006,
+              "input_shape": [
+                262181,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 3.1295856460928917,
+              "before_gib": 4.5693440437316895,
+              "after_gib": 5.319450378417969,
+              "peak_gib": 5.335075855255127,
+              "input_shape": [
+                262181,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 11.329609900712967,
+              "before_gib": 5.319450378417969,
+              "after_gib": 7.319733142852783,
+              "peak_gib": 7.3353590965271,
+              "input_shape": [
+                262181,
+                1536
+              ]
+            },
+            {
+              "name": "alltoall_combine",
+              "elapsed_ms": 39.35683146119118,
+              "before_gib": 7.319733142852783,
+              "after_gib": 9.5697340965271,
+              "peak_gib": 11.320016384124756,
+              "input_shape": [
+                262181,
+                4096
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 2,
+          "forward_ms": 115.75104296207428,
+          "backward_ms": 137.08091247826815,
+          "total_ms": 252.83195544034243,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 11.320016384124756,
+          "peak_gib": 11.320016384124756,
+          "reserved_peak_gib": 12.2890625,
+          "stages": [
+            {
+              "name": "alltoall_dispatch",
+              "elapsed_ms": 36.0157061368227,
+              "before_gib": 1.0649452209472656,
+              "after_gib": 3.069131851196289,
+              "peak_gib": 5.08504056930542,
+              "input_shape": [
+                32768,
+                4096
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 20.56207787245512,
+              "before_gib": 3.069131851196289,
+              "after_gib": 4.5693440437316895,
+              "peak_gib": 4.584969997406006,
+              "input_shape": [
+                262181,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.6934249326586723,
+              "before_gib": 4.5693440437316895,
+              "after_gib": 5.319450378417969,
+              "peak_gib": 5.335075855255127,
+              "input_shape": [
+                262181,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 10.080588050186634,
+              "before_gib": 5.319450378417969,
+              "after_gib": 7.319733142852783,
+              "peak_gib": 7.3353590965271,
+              "input_shape": [
+                262181,
+                1536
+              ]
+            },
+            {
+              "name": "alltoall_combine",
+              "elapsed_ms": 33.15291088074446,
+              "before_gib": 7.319733142852783,
+              "after_gib": 9.5697340965271,
+              "peak_gib": 11.320016384124756,
+              "input_shape": [
+                262181,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 128.2095555216074,
+          "backward_ms": 138.35902512073517,
+          "total_ms": 266.56858064234257,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 11.310858726501465,
+          "peak_gib": 11.310858726501465,
+          "reserved_peak_gib": 14.27734375,
+          "stages": [
+            {
+              "name": "alltoall_dispatch",
+              "elapsed_ms": 37.46873885393143,
+              "before_gib": 1.0649452209472656,
+              "after_gib": 3.0665149688720703,
+              "peak_gib": 5.080187797546387,
+              "input_shape": [
+                32768,
+                4096
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 20.213037729263306,
+              "before_gib": 3.0665149688720703,
+              "after_gib": 4.564764499664307,
+              "peak_gib": 4.580390453338623,
+              "input_shape": [
+                261838,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 3.1243152916431427,
+              "before_gib": 4.564764499664307,
+              "after_gib": 5.314764499664307,
+              "peak_gib": 5.330389976501465,
+              "input_shape": [
+                261838,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 11.316711083054543,
+              "before_gib": 5.314764499664307,
+              "after_gib": 7.312811374664307,
+              "peak_gib": 7.328437328338623,
+              "input_shape": [
+                261838,
+                1536
+              ]
+            },
+            {
+              "name": "alltoall_combine",
+              "elapsed_ms": 40.35300388932228,
+              "before_gib": 7.312811374664307,
+              "after_gib": 9.562812328338623,
+              "peak_gib": 11.310858726501465,
+              "input_shape": [
+                261838,
+                4096
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 2,
+          "forward_ms": 120.92296220362186,
+          "backward_ms": 137.9216443747282,
+          "total_ms": 258.84460657835007,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 11.310858726501465,
+          "peak_gib": 11.310858726501465,
+          "reserved_peak_gib": 14.27734375,
+          "stages": [
+            {
+              "name": "alltoall_dispatch",
+              "elapsed_ms": 33.73158257454634,
+              "before_gib": 1.0649452209472656,
+              "after_gib": 3.0668959617614746,
+              "peak_gib": 5.080568790435791,
+              "input_shape": [
+                32768,
+                4096
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 20.144587382674217,
+              "before_gib": 3.0668959617614746,
+              "after_gib": 4.565145492553711,
+              "peak_gib": 4.580771446228027,
+              "input_shape": [
+                261838,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.394423820078373,
+              "before_gib": 4.565145492553711,
+              "after_gib": 5.315145492553711,
+              "peak_gib": 5.330770969390869,
+              "input_shape": [
+                261838,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 10.118639096617699,
+              "before_gib": 5.315145492553711,
+              "after_gib": 7.313192367553711,
+              "peak_gib": 7.328818321228027,
+              "input_shape": [
+                261838,
+                1536
+              ]
+            },
+            {
+              "name": "alltoall_combine",
+              "elapsed_ms": 36.94154787808657,
+              "before_gib": 7.313192367553711,
+              "after_gib": 9.563193321228027,
+              "peak_gib": 11.310858726501465,
+              "input_shape": [
+                261838,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 129.78839967399836,
+          "backward_ms": 138.20748403668404,
+          "total_ms": 267.9958837106824,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 11.336035251617432,
+          "peak_gib": 11.336035251617432,
+          "reserved_peak_gib": 13.5546875,
+          "stages": [
+            {
+              "name": "alltoall_dispatch",
+              "elapsed_ms": 39.541762322187424,
+              "before_gib": 1.0649452209472656,
+              "after_gib": 3.0730152130126953,
+              "peak_gib": 5.092807292938232,
+              "input_shape": [
+                32768,
+                4096
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 20.33555693924427,
+              "before_gib": 3.0730152130126953,
+              "after_gib": 4.5761399269104,
+              "peak_gib": 4.591765880584717,
+              "input_shape": [
+                262690,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.7420949190855026,
+              "before_gib": 4.5761399269104,
+              "after_gib": 5.327702522277832,
+              "peak_gib": 5.34332799911499,
+              "input_shape": [
+                262690,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 11.405630968511105,
+              "before_gib": 5.327702522277832,
+              "after_gib": 7.331868648529053,
+              "peak_gib": 7.347494602203369,
+              "input_shape": [
+                262690,
+                1536
+              ]
+            },
+            {
+              "name": "alltoall_combine",
+              "elapsed_ms": 36.73344664275646,
+              "before_gib": 7.331868648529053,
+              "after_gib": 9.58186960220337,
+              "peak_gib": 11.336035251617432,
+              "input_shape": [
+                262690,
+                4096
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 2,
+          "forward_ms": 120.43638061732054,
+          "backward_ms": 137.89983373135328,
+          "total_ms": 258.3362143486738,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 11.336035251617432,
+          "peak_gib": 11.336035251617432,
+          "reserved_peak_gib": 13.5546875,
+          "stages": [
+            {
+              "name": "alltoall_dispatch",
+              "elapsed_ms": 36.14531736820936,
+              "before_gib": 1.0649452209472656,
+              "after_gib": 3.0730152130126953,
+              "peak_gib": 5.092807292938232,
+              "input_shape": [
+                32768,
+                4096
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 20.28736751526594,
+              "before_gib": 3.0730152130126953,
+              "after_gib": 4.5761399269104,
+              "peak_gib": 4.591765880584717,
+              "input_shape": [
+                262690,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.580484375357628,
+              "before_gib": 4.5761399269104,
+              "after_gib": 5.327702522277832,
+              "peak_gib": 5.34332799911499,
+              "input_shape": [
+                262690,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 9.852907620370388,
+              "before_gib": 5.327702522277832,
+              "after_gib": 7.331868648529053,
+              "peak_gib": 7.347494602203369,
+              "input_shape": [
+                262690,
+                1536
+              ]
+            },
+            {
+              "name": "alltoall_combine",
+              "elapsed_ms": 33.91480166465044,
+              "before_gib": 7.331868648529053,
+              "after_gib": 9.58186960220337,
+              "peak_gib": 11.336035251617432,
+              "input_shape": [
+                262690,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 130.4210601374507,
+          "backward_ms": 138.4078050032258,
+          "total_ms": 268.8288651406765,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 11.311927795410156,
+          "peak_gib": 11.311927795410156,
+          "reserved_peak_gib": 14.283203125,
+          "stages": [
+            {
+              "name": "alltoall_dispatch",
+              "elapsed_ms": 37.497119046747684,
+              "before_gib": 1.0649452209472656,
+              "after_gib": 3.0670032501220703,
+              "peak_gib": 5.080783367156982,
+              "input_shape": [
+                32768,
+                4096
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 20.199996419250965,
+              "before_gib": 3.0670032501220703,
+              "after_gib": 4.565618991851807,
+              "peak_gib": 4.581244945526123,
+              "input_shape": [
+                261902,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.9815547168254852,
+              "before_gib": 4.565618991851807,
+              "after_gib": 5.315618991851807,
+              "peak_gib": 5.331244468688965,
+              "input_shape": [
+                261902,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 11.52052078396082,
+              "before_gib": 5.315618991851807,
+              "after_gib": 7.313773155212402,
+              "peak_gib": 7.329399108886719,
+              "input_shape": [
+                261902,
+                1536
+              ]
+            },
+            {
+              "name": "alltoall_combine",
+              "elapsed_ms": 40.79139418900013,
+              "before_gib": 7.313773155212402,
+              "after_gib": 9.563774108886719,
+              "peak_gib": 11.311927795410156,
+              "input_shape": [
+                261902,
+                4096
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 2,
+          "forward_ms": 121.27984315156937,
+          "backward_ms": 137.8972241654992,
+          "total_ms": 259.1770673170686,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 11.311927795410156,
+          "peak_gib": 11.311927795410156,
+          "reserved_peak_gib": 14.283203125,
+          "stages": [
+            {
+              "name": "alltoall_dispatch",
+              "elapsed_ms": 33.53980276733637,
+              "before_gib": 1.0649452209472656,
+              "after_gib": 3.0670032501220703,
+              "peak_gib": 5.080783367156982,
+              "input_shape": [
+                32768,
+                4096
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 20.110356621444225,
+              "before_gib": 3.0670032501220703,
+              "after_gib": 4.565618991851807,
+              "peak_gib": 4.581244945526123,
+              "input_shape": [
+                261902,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.3777252063155174,
+              "before_gib": 4.565618991851807,
+              "after_gib": 5.315618991851807,
+              "peak_gib": 5.331244468688965,
+              "input_shape": [
+                261902,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 9.688147343695164,
+              "before_gib": 5.315618991851807,
+              "after_gib": 7.313773155212402,
+              "peak_gib": 7.329399108886719,
+              "input_shape": [
+                261902,
+                1536
+              ]
+            },
+            {
+              "name": "alltoall_combine",
+              "elapsed_ms": 37.50362899154425,
+              "before_gib": 7.313773155212402,
+              "after_gib": 9.563774108886719,
+              "peak_gib": 11.311927795410156,
+              "input_shape": [
+                261902,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 5,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 131.47216197103262,
+          "backward_ms": 138.05771432816982,
+          "total_ms": 269.52987629920244,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 11.318476676940918,
+          "peak_gib": 11.318476676940918,
+          "reserved_peak_gib": 14.283203125,
+          "stages": [
+            {
+              "name": "alltoall_dispatch",
+              "elapsed_ms": 37.7717399969697,
+              "before_gib": 1.0649452209472656,
+              "after_gib": 3.068635940551758,
+              "peak_gib": 5.084261894226074,
+              "input_shape": [
+                32768,
+                4096
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 20.27465682476759,
+              "before_gib": 3.068635940551758,
+              "after_gib": 4.56847620010376,
+              "peak_gib": 4.584102153778076,
+              "input_shape": [
+                262116,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 3.12680471688509,
+              "before_gib": 4.56847620010376,
+              "after_gib": 5.31847620010376,
+              "peak_gib": 5.334101676940918,
+              "input_shape": [
+                262116,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 11.558940634131432,
+              "before_gib": 5.31847620010376,
+              "after_gib": 7.31847620010376,
+              "peak_gib": 7.334102153778076,
+              "input_shape": [
+                262116,
+                1536
+              ]
+            },
+            {
+              "name": "alltoall_combine",
+              "elapsed_ms": 39.59224186837673,
+              "before_gib": 7.31847620010376,
+              "after_gib": 9.568477153778076,
+              "peak_gib": 11.318476676940918,
+              "input_shape": [
+                262116,
+                4096
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 2,
+          "forward_ms": 121.17191310971975,
+          "backward_ms": 137.82528322190046,
+          "total_ms": 258.9971963316202,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 11.318476676940918,
+          "peak_gib": 11.318476676940918,
+          "reserved_peak_gib": 14.283203125,
+          "stages": [
+            {
+              "name": "alltoall_dispatch",
+              "elapsed_ms": 33.520582132041454,
+              "before_gib": 1.0649452209472656,
+              "after_gib": 3.0688490867614746,
+              "peak_gib": 5.084475040435791,
+              "input_shape": [
+                32768,
+                4096
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 20.15965711325407,
+              "before_gib": 3.0688490867614746,
+              "after_gib": 4.568689346313477,
+              "peak_gib": 4.584315299987793,
+              "input_shape": [
+                262116,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.3861443623900414,
+              "before_gib": 4.568689346313477,
+              "after_gib": 5.318689346313477,
+              "peak_gib": 5.334314823150635,
+              "input_shape": [
+                262116,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 9.74199827760458,
+              "before_gib": 5.318689346313477,
+              "after_gib": 7.318689346313477,
+              "peak_gib": 7.334315299987793,
+              "input_shape": [
+                262116,
+                1536
+              ]
+            },
+            {
+              "name": "alltoall_combine",
+              "elapsed_ms": 36.894277669489384,
+              "before_gib": 7.318689346313477,
+              "after_gib": 9.568690299987793,
+              "peak_gib": 11.318476676940918,
+              "input_shape": [
+                262116,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 6,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 131.12397026270628,
+          "backward_ms": 138.37634585797787,
+          "total_ms": 269.50031612068415,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 11.354760646820068,
+          "peak_gib": 11.354760646820068,
+          "reserved_peak_gib": 13.5703125,
+          "stages": [
+            {
+              "name": "alltoall_dispatch",
+              "elapsed_ms": 38.75140193849802,
+              "before_gib": 1.0649452209472656,
+              "after_gib": 3.077554702758789,
+              "peak_gib": 5.10188627243042,
+              "input_shape": [
+                32768,
+                4096
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 20.11006698012352,
+              "before_gib": 3.077554702758789,
+              "after_gib": 4.5840840339660645,
+              "peak_gib": 4.599709987640381,
+              "input_shape": [
+                263285,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.349364571273327,
+              "before_gib": 4.5840840339660645,
+              "after_gib": 5.337348937988281,
+              "peak_gib": 5.3529744148254395,
+              "input_shape": [
+                263285,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 11.62486057728529,
+              "before_gib": 5.337348937988281,
+              "after_gib": 7.346054553985596,
+              "peak_gib": 7.361680507659912,
+              "input_shape": [
+                263285,
+                1536
+              ]
+            },
+            {
+              "name": "alltoall_combine",
+              "elapsed_ms": 40.00122286379337,
+              "before_gib": 7.346054553985596,
+              "after_gib": 9.596055507659912,
+              "peak_gib": 11.354760646820068,
+              "input_shape": [
+                263285,
+                4096
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 2,
+          "forward_ms": 116.07102304697037,
+          "backward_ms": 137.80668377876282,
+          "total_ms": 253.87770682573318,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 11.354760646820068,
+          "peak_gib": 11.354760646820068,
+          "reserved_peak_gib": 13.5703125,
+          "stages": [
+            {
+              "name": "alltoall_dispatch",
+              "elapsed_ms": 35.08815448731184,
+              "before_gib": 1.0649452209472656,
+              "after_gib": 3.077554702758789,
+              "peak_gib": 5.10188627243042,
+              "input_shape": [
+                32768,
+                4096
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 20.325327292084694,
+              "before_gib": 3.077554702758789,
+              "after_gib": 4.5840840339660645,
+              "peak_gib": 4.599709987640381,
+              "input_shape": [
+                263285,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.5259144604206085,
+              "before_gib": 4.5840840339660645,
+              "after_gib": 5.337348937988281,
+              "peak_gib": 5.3529744148254395,
+              "input_shape": [
+                263285,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 10.10274887084961,
+              "before_gib": 5.337348937988281,
+              "after_gib": 7.346054553985596,
+              "peak_gib": 7.361680507659912,
+              "input_shape": [
+                263285,
+                1536
+              ]
+            },
+            {
+              "name": "alltoall_combine",
+              "elapsed_ms": 33.89822132885456,
+              "before_gib": 7.346054553985596,
+              "after_gib": 9.596055507659912,
+              "peak_gib": 11.354760646820068,
+              "input_shape": [
+                263285,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 7,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 130.79429138451815,
+          "backward_ms": 138.2305733859539,
+          "total_ms": 269.02486477047205,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 11.304626941680908,
+          "peak_gib": 11.304626941680908,
+          "reserved_peak_gib": 14.27734375,
+          "stages": [
+            {
+              "name": "alltoall_dispatch",
+              "elapsed_ms": 37.293908186256886,
+              "before_gib": 1.0649452209472656,
+              "after_gib": 3.065401077270508,
+              "peak_gib": 5.077579021453857,
+              "input_shape": [
+                32768,
+                4096
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 20.293718203902245,
+              "before_gib": 3.065401077270508,
+              "after_gib": 4.562815189361572,
+              "peak_gib": 4.578441143035889,
+              "input_shape": [
+                261692,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 3.141815774142742,
+              "before_gib": 4.562815189361572,
+              "after_gib": 5.311522483825684,
+              "peak_gib": 5.327147960662842,
+              "input_shape": [
+                261692,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 11.36317104101181,
+              "before_gib": 5.311522483825684,
+              "after_gib": 7.308074474334717,
+              "peak_gib": 7.323700428009033,
+              "input_shape": [
+                261692,
+                1536
+              ]
+            },
+            {
+              "name": "alltoall_combine",
+              "elapsed_ms": 39.49649166315794,
+              "before_gib": 7.308074474334717,
+              "after_gib": 9.558075428009033,
+              "peak_gib": 11.304626941680908,
+              "input_shape": [
+                261692,
+                4096
+              ]
+            }
+          ]
+        },
+        {
+          "iteration": 2,
+          "forward_ms": 121.1416618898511,
+          "backward_ms": 137.8141539171338,
+          "total_ms": 258.9558158069849,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 11.304626941680908,
+          "peak_gib": 11.304626941680908,
+          "reserved_peak_gib": 14.27734375,
+          "stages": [
+            {
+              "name": "alltoall_dispatch",
+              "elapsed_ms": 33.474321477115154,
+              "before_gib": 1.0649452209472656,
+              "after_gib": 3.065401077270508,
+              "peak_gib": 5.077579021453857,
+              "input_shape": [
+                32768,
+                4096
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 20.00132668763399,
+              "before_gib": 3.065401077270508,
+              "after_gib": 4.562815189361572,
+              "peak_gib": 4.578441143035889,
+              "input_shape": [
+                261692,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.4344436824321747,
+              "before_gib": 4.562815189361572,
+              "after_gib": 5.311522483825684,
+              "peak_gib": 5.327147960662842,
+              "input_shape": [
+                261692,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 10.12123841792345,
+              "before_gib": 5.311522483825684,
+              "after_gib": 7.308074474334717,
+              "peak_gib": 7.323700428009033,
+              "input_shape": [
+                261692,
+                1536
+              ]
+            },
+            {
+              "name": "alltoall_combine",
+              "elapsed_ms": 36.722077056765556,
+              "before_gib": 7.308074474334717,
+              "after_gib": 9.558075428009033,
+              "peak_gib": 11.304626941680908,
+              "input_shape": [
+                261692,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

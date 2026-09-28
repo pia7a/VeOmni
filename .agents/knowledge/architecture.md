@@ -228,3 +228,11 @@ See `docs/design/placemoe_runtime_cleanup_20260922.md` for the current file map,
 CPU parity evidence and hardware-validation limits. Checkpoint metadata currently
 does not serialize or restore Source LUT; layout parity does not establish full
 routing-state restoration.
+
+The NPU combine path tiles independent hidden columns for FP32 accumulation.
+Its custom adjoint gathers source gradients directly; weighted combine computes
+routing-weight gradients in row chunks while reducing each complete hidden row.
+Do not replace this with a per-row-chunk autograd slice graph: each slice backward
+can allocate a full assignment tensor. See
+`docs/design/placemoe_long_sequence_20260928.md` for the eight-NPU memory evidence
+and the limits of a single-node logical hierarchy experiment.

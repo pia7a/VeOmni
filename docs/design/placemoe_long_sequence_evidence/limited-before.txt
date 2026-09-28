@@ -1,0 +1,258 @@
+<frozen runpy>:128: RuntimeWarning: 'torch.distributed.run' found in sys.modules after import of package 'torch.distributed', but prior to execution of 'torch.distributed.run'; this may result in unpredictable behaviour
+[INFO|/experiment/baseline/veomni/ops/__init__.py:72] 09/28/2026 07:21:52 >> ✅ VeOmni attention patches applied.
+[INFO|/experiment/baseline/veomni/__init__.py:25] 09/28/2026 07:21:52 >>
+========== Environment Variables ==========
+MODELING_BACKEND=veomni (source=default)
+===========================================
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4876: UserWarning: barrier(): using the device under current context. You can specify `device_id` in `init_process_group` to mute this warning.
+  warnings.warn(  # warn only once
+[rank:3]:[19542] [2026-09-28 07:21:57:925] torch_npu.memory: [ERROR] [19542] NPU out of memory. Tried to allocate 1.00 GiB (NPU 3; 60.96 GiB total capacity; 12.02 GiB already allocated; 12.02 GiB current active; 46.12 GiB free; 13.41 GiB allowed; 13.05 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank3]: Traceback (most recent call last):
+[rank3]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank3]:     main()
+[rank3]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 152, in main
+[rank3]:     output = npu_ep_fused_moe_forward(
+[rank3]:              ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/experiment/baseline/veomni/ops/kernels/moe/npu_group_gemm.py", line 276, in npu_ep_fused_moe_forward
+[rank3]:     hidden_states = rank_dedup_combine(hidden_states, hiermoe_ctx)
+[rank3]:                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 2486, in rank_dedup_combine
+[rank3]:     return _hierarchical_dedup_combine(expert_outputs, ctx)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 2262, in _hierarchical_dedup_combine
+[rank3]:     stage2_accum = _index_add_dim0_cast_output(
+[rank3]:                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 924, in _index_add_dim0_cast_output
+[rank3]:     output = _index_add_dim0_fp32(output, index, source)
+[rank3]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 876, in _index_add_dim0_fp32
+[rank3]:     source[start:end].to(torch.float32),
+[rank3]:     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 1.00 GiB (NPU 3; 60.96 GiB total capacity; 12.02 GiB already allocated; 12.02 GiB current active; 46.12 GiB free; 13.41 GiB allowed; 13.05 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank:0]:[19539] [2026-09-28 07:21:57:931] torch_npu.memory: [ERROR] [19539] NPU out of memory. Tried to allocate 1.00 GiB (NPU 0; 60.96 GiB total capacity; 11.97 GiB already allocated; 11.97 GiB current active; 46.15 GiB free; 13.41 GiB allowed; 13.02 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank:1]:[19540] [2026-09-28 07:21:57:933] torch_npu.memory: [ERROR] [19540] NPU out of memory. Tried to allocate 1.00 GiB (NPU 1; 60.96 GiB total capacity; 12.00 GiB already allocated; 12.00 GiB current active; 46.13 GiB free; 13.41 GiB allowed; 13.04 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank0]:     main()
+[rank0]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 152, in main
+[rank0]:     output = npu_ep_fused_moe_forward(
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/experiment/baseline/veomni/ops/kernels/moe/npu_group_gemm.py", line 276, in npu_ep_fused_moe_forward
+[rank0]:     hidden_states = rank_dedup_combine(hidden_states, hiermoe_ctx)
+[rank0]:                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 2486, in rank_dedup_combine
+[rank0]:     return _hierarchical_dedup_combine(expert_outputs, ctx)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 2262, in _hierarchical_dedup_combine
+[rank0]:     stage2_accum = _index_add_dim0_cast_output(
+[rank0]:                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 924, in _index_add_dim0_cast_output
+[rank0]:     output = _index_add_dim0_fp32(output, index, source)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 876, in _index_add_dim0_fp32
+[rank0]:     source[start:end].to(torch.float32),
+[rank0]:     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 1.00 GiB (NPU 0; 60.96 GiB total capacity; 11.97 GiB already allocated; 11.97 GiB current active; 46.15 GiB free; 13.41 GiB allowed; 13.02 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank1]: Traceback (most recent call last):
+[rank1]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank1]:     main()
+[rank1]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 152, in main
+[rank1]:     output = npu_ep_fused_moe_forward(
+[rank1]:              ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/experiment/baseline/veomni/ops/kernels/moe/npu_group_gemm.py", line 276, in npu_ep_fused_moe_forward
+[rank1]:     hidden_states = rank_dedup_combine(hidden_states, hiermoe_ctx)
+[rank1]:                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 2486, in rank_dedup_combine
+[rank1]:     return _hierarchical_dedup_combine(expert_outputs, ctx)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 2262, in _hierarchical_dedup_combine
+[rank1]:     stage2_accum = _index_add_dim0_cast_output(
+[rank1]:                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 924, in _index_add_dim0_cast_output
+[rank1]:     output = _index_add_dim0_fp32(output, index, source)
+[rank1]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 876, in _index_add_dim0_fp32
+[rank1]:     source[start:end].to(torch.float32),
+[rank1]:     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 1.00 GiB (NPU 1; 60.96 GiB total capacity; 12.00 GiB already allocated; 12.00 GiB current active; 46.13 GiB free; 13.41 GiB allowed; 13.04 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank:2]:[19541] [2026-09-28 07:21:57:944] torch_npu.memory: [ERROR] [19541] NPU out of memory. Tried to allocate 1.00 GiB (NPU 2; 60.96 GiB total capacity; 11.99 GiB already allocated; 11.99 GiB current active; 46.15 GiB free; 13.41 GiB allowed; 13.03 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank:4]:[19543] [2026-09-28 07:21:57:945] torch_npu.memory: [ERROR] [19543] NPU out of memory. Tried to allocate 1.00 GiB (NPU 4; 60.96 GiB total capacity; 11.99 GiB already allocated; 11.99 GiB current active; 46.15 GiB free; 13.41 GiB allowed; 13.03 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank2]: Traceback (most recent call last):
+[rank2]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank2]:     main()
+[rank2]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 152, in main
+[rank2]:     output = npu_ep_fused_moe_forward(
+[rank2]:              ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/experiment/baseline/veomni/ops/kernels/moe/npu_group_gemm.py", line 276, in npu_ep_fused_moe_forward
+[rank2]:     hidden_states = rank_dedup_combine(hidden_states, hiermoe_ctx)
+[rank2]:                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 2486, in rank_dedup_combine
+[rank2]:     return _hierarchical_dedup_combine(expert_outputs, ctx)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 2262, in _hierarchical_dedup_combine
+[rank2]:     stage2_accum = _index_add_dim0_cast_output(
+[rank2]:                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 924, in _index_add_dim0_cast_output
+[rank2]:     output = _index_add_dim0_fp32(output, index, source)
+[rank2]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 876, in _index_add_dim0_fp32
+[rank2]:     source[start:end].to(torch.float32),
+[rank2]:     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 1.00 GiB (NPU 2; 60.96 GiB total capacity; 11.99 GiB already allocated; 11.99 GiB current active; 46.15 GiB free; 13.41 GiB allowed; 13.03 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank4]: Traceback (most recent call last):
+[rank4]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank4]:     main()
+[rank4]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 152, in main
+[rank4]:     output = npu_ep_fused_moe_forward(
+[rank4]:              ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank4]:   File "/experiment/baseline/veomni/ops/kernels/moe/npu_group_gemm.py", line 276, in npu_ep_fused_moe_forward
+[rank4]:     hidden_states = rank_dedup_combine(hidden_states, hiermoe_ctx)
+[rank4]:                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank4]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 2486, in rank_dedup_combine
+[rank4]:     return _hierarchical_dedup_combine(expert_outputs, ctx)
+[rank4]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank4]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 2262, in _hierarchical_dedup_combine
+[rank4]:     stage2_accum = _index_add_dim0_cast_output(
+[rank4]:                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank4]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 924, in _index_add_dim0_cast_output
+[rank4]:     output = _index_add_dim0_fp32(output, index, source)
+[rank4]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank4]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 876, in _index_add_dim0_fp32
+[rank4]:     source[start:end].to(torch.float32),
+[rank4]:     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank4]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 1.00 GiB (NPU 4; 60.96 GiB total capacity; 11.99 GiB already allocated; 11.99 GiB current active; 46.15 GiB free; 13.41 GiB allowed; 13.03 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank:6]:[19545] [2026-09-28 07:21:57:957] torch_npu.memory: [ERROR] [19545] NPU out of memory. Tried to allocate 1.00 GiB (NPU 6; 60.96 GiB total capacity; 12.04 GiB already allocated; 12.04 GiB current active; 46.09 GiB free; 13.41 GiB allowed; 13.08 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank6]: Traceback (most recent call last):
+[rank6]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank6]:     main()
+[rank6]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 152, in main
+[rank6]:     output = npu_ep_fused_moe_forward(
+[rank6]:              ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]:   File "/experiment/baseline/veomni/ops/kernels/moe/npu_group_gemm.py", line 276, in npu_ep_fused_moe_forward
+[rank6]:     hidden_states = rank_dedup_combine(hidden_states, hiermoe_ctx)
+[rank6]:                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 2486, in rank_dedup_combine
+[rank6]:     return _hierarchical_dedup_combine(expert_outputs, ctx)
+[rank6]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 2262, in _hierarchical_dedup_combine
+[rank6]:     stage2_accum = _index_add_dim0_cast_output(
+[rank6]:                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 924, in _index_add_dim0_cast_output
+[rank6]:     output = _index_add_dim0_fp32(output, index, source)
+[rank6]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 876, in _index_add_dim0_fp32
+[rank6]:     source[start:end].to(torch.float32),
+[rank6]:     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 1.00 GiB (NPU 6; 60.96 GiB total capacity; 12.04 GiB already allocated; 12.04 GiB current active; 46.09 GiB free; 13.41 GiB allowed; 13.08 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank:7]:[19546] [2026-09-28 07:21:57:969] torch_npu.memory: [ERROR] [19546] NPU out of memory. Tried to allocate 1.00 GiB (NPU 7; 60.96 GiB total capacity; 11.99 GiB already allocated; 11.99 GiB current active; 46.14 GiB free; 13.41 GiB allowed; 13.03 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank7]: Traceback (most recent call last):
+[rank7]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank7]:     main()
+[rank7]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 152, in main
+[rank7]:     output = npu_ep_fused_moe_forward(
+[rank7]:              ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank7]:   File "/experiment/baseline/veomni/ops/kernels/moe/npu_group_gemm.py", line 276, in npu_ep_fused_moe_forward
+[rank7]:     hidden_states = rank_dedup_combine(hidden_states, hiermoe_ctx)
+[rank7]:                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank7]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 2486, in rank_dedup_combine
+[rank7]:     return _hierarchical_dedup_combine(expert_outputs, ctx)
+[rank7]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank7]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 2262, in _hierarchical_dedup_combine
+[rank7]:     stage2_accum = _index_add_dim0_cast_output(
+[rank7]:                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank7]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 924, in _index_add_dim0_cast_output
+[rank7]:     output = _index_add_dim0_fp32(output, index, source)
+[rank7]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank7]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 876, in _index_add_dim0_fp32
+[rank7]:     source[start:end].to(torch.float32),
+[rank7]:     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank7]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 1.00 GiB (NPU 7; 60.96 GiB total capacity; 11.99 GiB already allocated; 11.99 GiB current active; 46.14 GiB free; 13.41 GiB allowed; 13.03 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank:5]:[19544] [2026-09-28 07:21:57:990] torch_npu.memory: [ERROR] [19544] NPU out of memory. Tried to allocate 1.00 GiB (NPU 5; 60.96 GiB total capacity; 12.00 GiB already allocated; 12.00 GiB current active; 46.14 GiB free; 13.41 GiB allowed; 13.03 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank5]: Traceback (most recent call last):
+[rank5]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank5]:     main()
+[rank5]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 152, in main
+[rank5]:     output = npu_ep_fused_moe_forward(
+[rank5]:              ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank5]:   File "/experiment/baseline/veomni/ops/kernels/moe/npu_group_gemm.py", line 276, in npu_ep_fused_moe_forward
+[rank5]:     hidden_states = rank_dedup_combine(hidden_states, hiermoe_ctx)
+[rank5]:                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank5]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 2486, in rank_dedup_combine
+[rank5]:     return _hierarchical_dedup_combine(expert_outputs, ctx)
+[rank5]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank5]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 2262, in _hierarchical_dedup_combine
+[rank5]:     stage2_accum = _index_add_dim0_cast_output(
+[rank5]:                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank5]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 924, in _index_add_dim0_cast_output
+[rank5]:     output = _index_add_dim0_fp32(output, index, source)
+[rank5]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank5]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 876, in _index_add_dim0_fp32
+[rank5]:     source[start:end].to(torch.float32),
+[rank5]:     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank5]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 1.00 GiB (NPU 5; 60.96 GiB total capacity; 12.00 GiB already allocated; 12.00 GiB current active; 46.14 GiB free; 13.41 GiB allowed; 13.03 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[ERROR] 2026-09-28-07:22:00 (PID:19544, Device:5, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+[ERROR] 2026-09-28-07:22:00 (PID:19545, Device:6, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+[ERROR] 2026-09-28-07:22:00 (PID:19541, Device:2, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+[ERROR] 2026-09-28-07:22:01 (PID:19539, Device:0, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+[ERROR] 2026-09-28-07:22:01 (PID:19542, Device:3, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+[ERROR] 2026-09-28-07:22:01 (PID:19540, Device:1, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+[ERROR] 2026-09-28-07:22:01 (PID:19543, Device:4, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+[ERROR] 2026-09-28-07:22:01 (PID:19546, Device:7, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+W0928 07:22:06.582000 19534 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 19539 closing signal SIGTERM
+W0928 07:22:06.582000 19534 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 19540 closing signal SIGTERM
+W0928 07:22:06.583000 19534 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 19541 closing signal SIGTERM
+W0928 07:22:06.583000 19534 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 19542 closing signal SIGTERM
+W0928 07:22:06.583000 19534 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 19543 closing signal SIGTERM
+W0928 07:22:06.583000 19534 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 19544 closing signal SIGTERM
+W0928 07:22:06.584000 19534 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 19546 closing signal SIGTERM
+E0928 07:22:07.313000 19534 site-packages/torch/distributed/elastic/multiprocessing/api.py:882] failed (exitcode: 1) local_rank: 6 (pid: 19545) of binary: /opt/placemoe/.venv/bin/python
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/run.py", line 940, in <module>
+    main()
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 357, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/run.py", line 936, in main
+    run(args)
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/run.py", line 927, in run
+    elastic_launch(
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 156, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 293, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError:
+============================================================
+/workspace/scripts/placemoe/benchmark_moe_memory.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-09-28_07:22:06
+  host      : liteserver-c009-5-1
+  rank      : 6 (local_rank: 6)
+  exitcode  : 1 (pid: 19545)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
+[ERROR] 2026-09-28-07:22:07 (PID:19534, Device:-1, RankID:-1) ERR99999 UNKNOWN applicaiton exception

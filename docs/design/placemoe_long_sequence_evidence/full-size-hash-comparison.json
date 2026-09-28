@@ -1,0 +1,58 @@
+{
+  "0": {
+    "output": true,
+    "input_grad": true,
+    "routing_grad": true,
+    "w1_grad": true,
+    "w2_grad": true
+  },
+  "1": {
+    "output": true,
+    "input_grad": true,
+    "routing_grad": true,
+    "w1_grad": true,
+    "w2_grad": true
+  },
+  "2": {
+    "output": true,
+    "input_grad": true,
+    "routing_grad": true,
+    "w1_grad": true,
+    "w2_grad": true
+  },
+  "3": {
+    "output": true,
+    "input_grad": true,
+    "routing_grad": true,
+    "w1_grad": true,
+    "w2_grad": true
+  },
+  "4": {
+    "output": true,
+    "input_grad": true,
+    "routing_grad": true,
+    "w1_grad": true,
+    "w2_grad": true
+  },
+  "5": {
+    "output": false,
+    "input_grad": true,
+    "routing_grad": true,
+    "w1_grad": true,
+    "w2_grad": true
+  },
+  "6": {
+    "output": true,
+    "input_grad": true,
+    "routing_grad": true,
+    "w1_grad": true,
+    "w2_grad": true
+  },
+  "7": {
+    "output": true,
+    "input_grad": true,
+    "routing_grad": true,
+    "w1_grad": true,
+    "w2_grad": true
+  }
+}

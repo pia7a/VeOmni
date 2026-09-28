@@ -1,0 +1,746 @@
+{
+  "config": {
+    "mode": "hierarchical",
+    "tokens": 32768,
+    "hidden": 4096,
+    "intermediate": 1536,
+    "experts": 128,
+    "top_k": 8,
+    "warmup": 1,
+    "iterations": 1,
+    "output": "/experiment/diagnose-optimized.json",
+    "save_tensors": null,
+    "memory_fraction": 1.0,
+    "diagnose": true
+  },
+  "ranks": [
+    {
+      "rank": 0,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 251.37898232787848,
+          "backward_ms": 201.81936211884022,
+          "total_ms": 453.1983444467187,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.145337104797363,
+          "peak_gib": 11.14179801940918,
+          "reserved_peak_gib": 14.68359375,
+          "stages": [
+            {
+              "name": "rank_dedup_dispatch",
+              "elapsed_ms": 104.56375312060118,
+              "before_gib": 1.0649447441101074,
+              "after_gib": 3.0737686157226562,
+              "peak_gib": 4.416604518890381,
+              "input_shape": null
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 21.24988939613104,
+              "before_gib": 3.0737686157226562,
+              "after_gib": 4.569862365722656,
+              "peak_gib": 4.585488319396973,
+              "input_shape": [
+                261448,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.5568734854459763,
+              "before_gib": 4.569862365722656,
+              "after_gib": 5.317871570587158,
+              "peak_gib": 5.333497047424316,
+              "input_shape": [
+                261448,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 11.38371042907238,
+              "before_gib": 5.317871570587158,
+              "after_gib": 7.312561988830566,
+              "peak_gib": 7.328187942504883,
+              "input_shape": [
+                261448,
+                1536
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "elapsed_ms": 16.534259542822838,
+              "before_gib": 8.644593238830566,
+              "after_gib": 9.143090724945068,
+              "peak_gib": 9.768092632293701,
+              "input_shape": [
+                174571,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "elapsed_ms": 6.079280748963356,
+              "before_gib": 7.811227321624756,
+              "after_gib": 8.061227798461914,
+              "peak_gib": 8.56022834777832,
+              "input_shape": [
+                65361,
+                4096
+              ]
+            },
+            {
+              "name": "rank_dedup_combine",
+              "elapsed_ms": 103.05088944733143,
+              "before_gib": 7.312561988830566,
+              "after_gib": 7.562562465667725,
+              "peak_gib": 10.145337104797363,
+              "input_shape": [
+                261448,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 1,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 250.85081160068512,
+          "backward_ms": 202.0118022337556,
+          "total_ms": 452.8626138344407,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.166806697845459,
+          "peak_gib": 11.16585397720337,
+          "reserved_peak_gib": 15.21875,
+          "stages": [
+            {
+              "name": "rank_dedup_dispatch",
+              "elapsed_ms": 103.57392020523548,
+              "before_gib": 1.0649447441101074,
+              "after_gib": 3.0793771743774414,
+              "peak_gib": 4.425156116485596,
+              "input_shape": null
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 21.428399719297886,
+              "before_gib": 3.0793771743774414,
+              "after_gib": 4.579589366912842,
+              "peak_gib": 4.595215320587158,
+              "input_shape": [
+                262181,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.5439737364649773,
+              "before_gib": 4.579589366912842,
+              "after_gib": 5.329695701599121,
+              "peak_gib": 5.345321178436279,
+              "input_shape": [
+                262181,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 11.322950944304466,
+              "before_gib": 5.329695701599121,
+              "after_gib": 7.3299784660339355,
+              "peak_gib": 7.345604419708252,
+              "input_shape": [
+                262181,
+                1536
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "elapsed_ms": 16.56425092369318,
+              "before_gib": 8.666168212890625,
+              "after_gib": 9.16461992263794,
+              "peak_gib": 9.789621829986572,
+              "input_shape": [
+                175137,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "elapsed_ms": 5.824641324579716,
+              "before_gib": 7.828483581542969,
+              "after_gib": 8.078484058380127,
+              "peak_gib": 8.577364444732666,
+              "input_shape": [
+                65340,
+                4096
+              ]
+            },
+            {
+              "name": "rank_dedup_combine",
+              "elapsed_ms": 104.38842140138149,
+              "before_gib": 7.3299784660339355,
+              "after_gib": 7.579978942871094,
+              "peak_gib": 10.166806697845459,
+              "input_shape": [
+                262181,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 250.47949142754078,
+          "backward_ms": 202.4261513724923,
+          "total_ms": 452.9056428000331,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.155648231506348,
+          "peak_gib": 11.154362201690674,
+          "reserved_peak_gib": 14.703125,
+          "stages": [
+            {
+              "name": "rank_dedup_dispatch",
+              "elapsed_ms": 104.61264289915562,
+              "before_gib": 1.0649447441101074,
+              "after_gib": 3.0771408081054688,
+              "peak_gib": 4.41998291015625,
+              "input_shape": null
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 21.249858662486076,
+              "before_gib": 3.0771408081054688,
+              "after_gib": 4.575390338897705,
+              "peak_gib": 4.5910162925720215,
+              "input_shape": [
+                261838,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.578854560852051,
+              "before_gib": 4.575390338897705,
+              "after_gib": 5.324515342712402,
+              "peak_gib": 5.3401408195495605,
+              "input_shape": [
+                261838,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 12.857564724981785,
+              "before_gib": 5.324515342712402,
+              "after_gib": 7.322562217712402,
+              "peak_gib": 7.338188171386719,
+              "input_shape": [
+                261838,
+                1536
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "elapsed_ms": 16.377460211515427,
+              "before_gib": 8.659018993377686,
+              "after_gib": 9.157577514648438,
+              "peak_gib": 9.78257942199707,
+              "input_shape": [
+                175172,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "elapsed_ms": 5.818961188197136,
+              "before_gib": 7.8210368156433105,
+              "after_gib": 8.071037292480469,
+              "peak_gib": 8.569894790649414,
+              "input_shape": [
+                65336,
+                4096
+              ]
+            },
+            {
+              "name": "rank_dedup_combine",
+              "elapsed_ms": 101.60569660365582,
+              "before_gib": 7.322562217712402,
+              "after_gib": 7.5725626945495605,
+              "peak_gib": 10.155648231506348,
+              "input_shape": [
+                261838,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 250.3273105248809,
+          "backward_ms": 202.77696289122105,
+          "total_ms": 453.10427341610193,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.181452751159668,
+          "peak_gib": 11.18253469467163,
+          "reserved_peak_gib": 15.228515625,
+          "stages": [
+            {
+              "name": "rank_dedup_dispatch",
+              "elapsed_ms": 104.62808329612017,
+              "before_gib": 1.0649447441101074,
+              "after_gib": 3.0832695960998535,
+              "peak_gib": 4.428075790405273,
+              "input_shape": null
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 21.364878863096237,
+              "before_gib": 3.0832695960998535,
+              "after_gib": 4.5871758460998535,
+              "peak_gib": 4.60280179977417,
+              "input_shape": [
+                262690,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.5641443207859993,
+              "before_gib": 4.5871758460998535,
+              "after_gib": 5.338738441467285,
+              "peak_gib": 5.354363918304443,
+              "input_shape": [
+                262690,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 11.422771029174328,
+              "before_gib": 5.338738441467285,
+              "after_gib": 7.342904567718506,
+              "peak_gib": 7.358530521392822,
+              "input_shape": [
+                262690,
+                1536
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "elapsed_ms": 16.296050511300564,
+              "before_gib": 8.674997329711914,
+              "after_gib": 9.173532962799072,
+              "peak_gib": 9.798534870147705,
+              "input_shape": [
+                174600,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "elapsed_ms": 5.844000726938248,
+              "before_gib": 7.841272354125977,
+              "after_gib": 8.091272830963135,
+              "peak_gib": 8.590050220489502,
+              "input_shape": [
+                65322,
+                4096
+              ]
+            },
+            {
+              "name": "rank_dedup_combine",
+              "elapsed_ms": 102.85231005400419,
+              "before_gib": 7.342904567718506,
+              "after_gib": 7.592905044555664,
+              "peak_gib": 10.181452751159668,
+              "input_shape": [
+                262690,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 251.29280239343643,
+          "backward_ms": 202.41245348006487,
+          "total_ms": 453.7052558735013,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.155364036560059,
+          "peak_gib": 11.154637813568115,
+          "reserved_peak_gib": 14.712890625,
+          "stages": [
+            {
+              "name": "rank_dedup_dispatch",
+              "elapsed_ms": 101.21436603367329,
+              "before_gib": 1.0649447441101074,
+              "after_gib": 3.0772547721862793,
+              "peak_gib": 4.418702602386475,
+              "input_shape": null
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 21.127749234437943,
+              "before_gib": 3.0772547721862793,
+              "after_gib": 4.575870513916016,
+              "peak_gib": 4.591496467590332,
+              "input_shape": [
+                261902,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.4634450674057007,
+              "before_gib": 4.575870513916016,
+              "after_gib": 5.325178623199463,
+              "peak_gib": 5.340804100036621,
+              "input_shape": [
+                261902,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 11.058300733566284,
+              "before_gib": 5.325178623199463,
+              "after_gib": 7.323332786560059,
+              "peak_gib": 7.338958740234375,
+              "input_shape": [
+                261902,
+                1536
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "elapsed_ms": 16.48813020437956,
+              "before_gib": 8.661498546600342,
+              "after_gib": 9.159957885742188,
+              "peak_gib": 9.78495979309082,
+              "input_shape": [
+                175396,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "elapsed_ms": 5.818309262394905,
+              "before_gib": 7.821624279022217,
+              "after_gib": 8.071624755859375,
+              "peak_gib": 8.570344924926758,
+              "input_shape": [
+                65312,
+                4096
+              ]
+            },
+            {
+              "name": "rank_dedup_combine",
+              "elapsed_ms": 108.1829983741045,
+              "before_gib": 7.323332786560059,
+              "after_gib": 7.573333263397217,
+              "peak_gib": 10.155364036560059,
+              "input_shape": [
+                261902,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 5,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 251.32816284894943,
+          "backward_ms": 202.23353244364262,
+          "total_ms": 453.56169529259205,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.161458015441895,
+          "peak_gib": 11.162400245666504,
+          "reserved_peak_gib": 14.703125,
+          "stages": [
+            {
+              "name": "rank_dedup_dispatch",
+              "elapsed_ms": 100.73995497077703,
+              "before_gib": 1.0649447441101074,
+              "after_gib": 3.079092502593994,
+              "peak_gib": 4.42078161239624,
+              "input_shape": null
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 21.15596830844879,
+              "before_gib": 3.079092502593994,
+              "after_gib": 4.579092502593994,
+              "peak_gib": 4.5947184562683105,
+              "input_shape": [
+                262116,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.3954957723617554,
+              "before_gib": 4.579092502593994,
+              "after_gib": 5.329012870788574,
+              "peak_gib": 5.344638347625732,
+              "input_shape": [
+                262116,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 11.078729294240475,
+              "before_gib": 5.329012870788574,
+              "after_gib": 7.329012870788574,
+              "peak_gib": 7.344638824462891,
+              "input_shape": [
+                262116,
+                1536
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "elapsed_ms": 16.224879771471024,
+              "before_gib": 8.661876201629639,
+              "after_gib": 9.16030502319336,
+              "peak_gib": 9.785306930541992,
+              "input_shape": [
+                174701,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "elapsed_ms": 5.76041080057621,
+              "before_gib": 7.827388286590576,
+              "after_gib": 8.077388763427734,
+              "peak_gib": 8.576171875,
+              "input_shape": [
+                65323,
+                4096
+              ]
+            },
+            {
+              "name": "rank_dedup_combine",
+              "elapsed_ms": 108.78087021410465,
+              "before_gib": 7.329012870788574,
+              "after_gib": 7.579013347625732,
+              "peak_gib": 10.161458015441895,
+              "input_shape": [
+                262116,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 6,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 250.6434116512537,
+          "backward_ms": 202.29739230126143,
+          "total_ms": 452.9408039525151,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.202651023864746,
+          "peak_gib": 11.20516586303711,
+          "reserved_peak_gib": 15.255859375,
+          "stages": [
+            {
+              "name": "rank_dedup_dispatch",
+              "elapsed_ms": 100.24994425475597,
+              "before_gib": 1.0649447441101074,
+              "after_gib": 3.0887722969055176,
+              "peak_gib": 4.437512397766113,
+              "input_shape": null
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 22.548342123627663,
+              "before_gib": 3.0887722969055176,
+              "after_gib": 4.595301628112793,
+              "peak_gib": 4.610927581787109,
+              "input_shape": [
+                263285,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.52501480281353,
+              "before_gib": 4.595301628112793,
+              "after_gib": 5.34856653213501,
+              "peak_gib": 5.364192008972168,
+              "input_shape": [
+                263285,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 11.416520923376083,
+              "before_gib": 5.34856653213501,
+              "after_gib": 7.357272148132324,
+              "peak_gib": 7.372898101806641,
+              "input_shape": [
+                263285,
+                1536
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "elapsed_ms": 16.549271531403065,
+              "before_gib": 8.691981792449951,
+              "after_gib": 9.190425872802734,
+              "peak_gib": 9.815427780151367,
+              "input_shape": [
+                174943,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "elapsed_ms": 5.806000903248787,
+              "before_gib": 7.855800151824951,
+              "after_gib": 8.10580062866211,
+              "peak_gib": 8.604698181152344,
+              "input_shape": [
+                65343,
+                4096
+              ]
+            },
+            {
+              "name": "rank_dedup_combine",
+              "elapsed_ms": 105.84057494997978,
+              "before_gib": 7.357272148132324,
+              "after_gib": 7.607272624969482,
+              "peak_gib": 10.202651023864746,
+              "input_shape": [
+                263285,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 7,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 250.40031038224697,
+          "backward_ms": 202.85631343722343,
+          "total_ms": 453.2566238194704,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.156825065612793,
+          "peak_gib": 11.151998043060303,
+          "reserved_peak_gib": 14.69921875,
+          "stages": [
+            {
+              "name": "rank_dedup_dispatch",
+              "elapsed_ms": 100.87893437594175,
+              "before_gib": 1.0649447441101074,
+              "after_gib": 3.0756406784057617,
+              "peak_gib": 4.4204325675964355,
+              "input_shape": null
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 21.251339465379715,
+              "before_gib": 3.0756406784057617,
+              "after_gib": 4.573687553405762,
+              "peak_gib": 4.589313507080078,
+              "input_shape": [
+                261692,
+                4096
+              ]
+            },
+            {
+              "name": "_swiglu",
+              "elapsed_ms": 2.405964769423008,
+              "before_gib": 4.573687553405762,
+              "after_gib": 5.322394847869873,
+              "peak_gib": 5.338020324707031,
+              "input_shape": [
+                261692,
+                3072
+              ]
+            },
+            {
+              "name": "npu_group_gemm",
+              "elapsed_ms": 11.480120941996574,
+              "before_gib": 5.322394847869873,
+              "after_gib": 7.318946838378906,
+              "peak_gib": 7.334572792053223,
+              "input_shape": [
+                261692,
+                1536
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "elapsed_ms": 16.2729499861598,
+              "before_gib": 8.653130054473877,
+              "after_gib": 9.151421546936035,
+              "peak_gib": 9.776423454284668,
+              "input_shape": [
+                174874,
+                4096
+              ]
+            },
+            {
+              "name": "_index_add_dim0_cast_output",
+              "elapsed_ms": 5.825269967317581,
+              "before_gib": 7.817406177520752,
+              "after_gib": 8.06740665435791,
+              "peak_gib": 8.566252708435059,
+              "input_shape": [
+                65334,
+                4096
+              ]
+            },
+            {
+              "name": "rank_dedup_combine",
+              "elapsed_ms": 107.1134377270937,
+              "before_gib": 7.318946838378906,
+              "after_gib": 7.5689473152160645,
+              "peak_gib": 10.156825065612793,
+              "input_shape": [
+                261692,
+                4096
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

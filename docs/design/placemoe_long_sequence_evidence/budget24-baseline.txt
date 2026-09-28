@@ -1,0 +1,27 @@
+<frozen runpy>:128: RuntimeWarning: 'torch.distributed.run' found in sys.modules after import of package 'torch.distributed', but prior to execution of 'torch.distributed.run'; this may result in unpredictable behaviour
+[INFO|/experiment/baseline/veomni/ops/__init__.py:72] 09/28/2026 07:23:48 >> ✅ VeOmni attention patches applied.
+[INFO|/experiment/baseline/veomni/__init__.py:25] 09/28/2026 07:23:48 >>
+========== Environment Variables ==========
+MODELING_BACKEND=veomni (source=default)
+===========================================
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4876: UserWarning: barrier(): using the device under current context. You can specify `device_id` in `init_process_group` to mute this warning.
+  warnings.warn(  # warn only once
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+{"iteration": 0, "forward_ms": 1645.4150583595037, "backward_ms": 228.11684012413025, "total_ms": 1873.531898483634, "initial_gib": 1.0649447441101074, "forward_peak_gib": 11.296985626220703, "peak_gib": 11.296985626220703, "reserved_peak_gib": 14.26953125}
+{"iteration": 1, "forward_ms": 113.14832791686058, "backward_ms": 139.02478571981192, "total_ms": 252.1731136366725, "initial_gib": 1.0649447441101074, "forward_peak_gib": 11.296985626220703, "peak_gib": 11.296985626220703, "reserved_peak_gib": 14.26953125}
+{"iteration": 2, "forward_ms": 102.75111999362707, "backward_ms": 136.36858109384775, "total_ms": 239.11970108747482, "initial_gib": 1.0649447441101074, "forward_peak_gib": 11.296985626220703, "peak_gib": 11.296985626220703, "reserved_peak_gib": 14.26953125}

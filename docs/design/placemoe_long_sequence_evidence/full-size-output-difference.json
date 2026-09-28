@@ -1,0 +1,17 @@
+{
+  "elements": 134217728,
+  "different_elements": 1,
+  "max_abs": 0.0009765625,
+  "relative_l2": 3.610783494423231e-07,
+  "examples": [
+    [
+      [
+        12084,
+        682
+      ],
+      -0.17578125,
+      -0.1748046875
+    ]
+  ],
+  "bf16_tolerance_pass": true
+}

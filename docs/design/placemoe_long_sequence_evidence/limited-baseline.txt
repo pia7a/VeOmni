@@ -1,0 +1,114 @@
+<frozen runpy>:128: RuntimeWarning: 'torch.distributed.run' found in sys.modules after import of package 'torch.distributed', but prior to execution of 'torch.distributed.run'; this may result in unpredictable behaviour
+[INFO|/experiment/baseline/veomni/ops/__init__.py:72] 09/28/2026 07:21:11 >> ✅ VeOmni attention patches applied.
+[INFO|/experiment/baseline/veomni/__init__.py:25] 09/28/2026 07:21:11 >>
+========== Environment Variables ==========
+MODELING_BACKEND=veomni (source=default)
+===========================================
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4876: UserWarning: barrier(): using the device under current context. You can specify `device_id` in `init_process_group` to mute this warning.
+  warnings.warn(  # warn only once
+[rank:3]:[18799] [2026-09-28 07:21:16:766] torch_npu.memory: [ERROR] [18799] NPU out of memory. Tried to allocate 2.00 GiB (NPU 3; 60.96 GiB total capacity; 9.34 GiB already allocated; 9.34 GiB current active; 48.63 GiB free; 13.41 GiB allowed; 11.55 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank:6]:[18802] [2026-09-28 07:21:16:766] torch_npu.memory: [ERROR] [18802] NPU out of memory. Tried to allocate 2.00 GiB (NPU 6; 60.96 GiB total capacity; 9.35 GiB already allocated; 9.35 GiB current active; 48.61 GiB free; 13.41 GiB allowed; 11.57 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank3]: Traceback (most recent call last):
+[rank3]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank3]:     main()
+[rank3]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 152, in main
+[rank3]:     output = npu_ep_fused_moe_forward(
+[rank3]:              ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/experiment/baseline/veomni/ops/kernels/moe/npu_group_gemm.py", line 393, in npu_ep_fused_moe_forward
+[rank3]:     hidden_states = alltoall_combine(
+[rank3]:                     ^^^^^^^^^^^^^^^^^
+[rank3]:   File "/experiment/baseline/veomni/ops/kernels/moe/npu_group_gemm.py", line 504, in alltoall_combine
+[rank3]:     hidden_states = all_to_all(ep_group, hidden_states, input_splits, output_splits)
+[rank3]:                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/experiment/baseline/veomni/distributed/moe/comm.py", line 150, in all_to_all
+[rank3]:     return _AllToAll.apply(group, input, output_split_size, input_split_size)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/function.py", line 581, in apply
+[rank3]:     return super().apply(*args, **kwargs)  # type: ignore[misc]
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/experiment/baseline/veomni/distributed/moe/comm.py", line 48, in forward
+[rank3]:     output = torch.empty(size=(sum(output_split_sizes), input.size(1)), dtype=input.dtype, device=input.device)
+[rank3]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 2.00 GiB (NPU 3; 60.96 GiB total capacity; 9.34 GiB already allocated; 9.34 GiB current active; 48.63 GiB free; 13.41 GiB allowed; 11.55 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank6]: Traceback (most recent call last):
+[rank6]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank6]:     main()
+[rank6]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 152, in main
+[rank6]:     output = npu_ep_fused_moe_forward(
+[rank6]:              ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]:   File "/experiment/baseline/veomni/ops/kernels/moe/npu_group_gemm.py", line 393, in npu_ep_fused_moe_forward
+[rank6]:     hidden_states = alltoall_combine(
+[rank6]:                     ^^^^^^^^^^^^^^^^^
+[rank6]:   File "/experiment/baseline/veomni/ops/kernels/moe/npu_group_gemm.py", line 504, in alltoall_combine
+[rank6]:     hidden_states = all_to_all(ep_group, hidden_states, input_splits, output_splits)
+[rank6]:                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]:   File "/experiment/baseline/veomni/distributed/moe/comm.py", line 150, in all_to_all
+[rank6]:     return _AllToAll.apply(group, input, output_split_size, input_split_size)
+[rank6]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/function.py", line 581, in apply
+[rank6]:     return super().apply(*args, **kwargs)  # type: ignore[misc]
+[rank6]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]:   File "/experiment/baseline/veomni/distributed/moe/comm.py", line 48, in forward
+[rank6]:     output = torch.empty(size=(sum(output_split_sizes), input.size(1)), dtype=input.dtype, device=input.device)
+[rank6]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 2.00 GiB (NPU 6; 60.96 GiB total capacity; 9.35 GiB already allocated; 9.35 GiB current active; 48.61 GiB free; 13.41 GiB allowed; 11.57 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[ERROR] 2026-09-28-07:21:18 (PID:18802, Device:6, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+[ERROR] 2026-09-28-07:21:19 (PID:18799, Device:3, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+W0928 07:21:26.218000 18791 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 18796 closing signal SIGTERM
+W0928 07:21:26.219000 18791 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 18797 closing signal SIGTERM
+W0928 07:21:26.219000 18791 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 18798 closing signal SIGTERM
+W0928 07:21:26.219000 18791 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 18799 closing signal SIGTERM
+W0928 07:21:26.220000 18791 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 18800 closing signal SIGTERM
+W0928 07:21:26.220000 18791 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 18801 closing signal SIGTERM
+W0928 07:21:26.220000 18791 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 18803 closing signal SIGTERM
+E0928 07:21:27.337000 18791 site-packages/torch/distributed/elastic/multiprocessing/api.py:882] failed (exitcode: 1) local_rank: 6 (pid: 18802) of binary: /opt/placemoe/.venv/bin/python
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/run.py", line 940, in <module>
+    main()
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 357, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/run.py", line 936, in main
+    run(args)
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/run.py", line 927, in run
+    elastic_launch(
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 156, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 293, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError:
+============================================================
+/workspace/scripts/placemoe/benchmark_moe_memory.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-09-28_07:21:26
+  host      : liteserver-c009-5-1
+  rank      : 6 (local_rank: 6)
+  exitcode  : 1 (pid: 18802)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
+[ERROR] 2026-09-28-07:21:27 (PID:18791, Device:-1, RankID:-1) ERR99999 UNKNOWN applicaiton exception

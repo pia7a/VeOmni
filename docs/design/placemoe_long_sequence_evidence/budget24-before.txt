@@ -1,0 +1,192 @@
+<frozen runpy>:128: RuntimeWarning: 'torch.distributed.run' found in sys.modules after import of package 'torch.distributed', but prior to execution of 'torch.distributed.run'; this may result in unpredictable behaviour
+[INFO|/experiment/baseline/veomni/ops/__init__.py:72] 09/28/2026 07:24:32 >> ✅ VeOmni attention patches applied.
+[INFO|/experiment/baseline/veomni/__init__.py:25] 09/28/2026 07:24:32 >>
+========== Environment Variables ==========
+MODELING_BACKEND=veomni (source=default)
+===========================================
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/workspace/scripts/placemoe/benchmark_moe_memory.py:91: UserWarning: Cannot create tensor with interal format while allow_internel_format=False, tensor will be created with base format. (Triggered internally at ../torch_npu/csrc/aten/common/TensorFactories.cpp:340.)
+  upstream = torch.randn_like(x) / args.tokens
+/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/distributed_c10d.py:4876: UserWarning: barrier(): using the device under current context. You can specify `device_id` in `init_process_group` to mute this warning.
+  warnings.warn(  # warn only once
+[rank:2]:[21592] [2026-09-28 07:24:39:196] torch_npu.memory: [ERROR] [22000] NPU out of memory. Tried to allocate 2.00 GiB (NPU 2; 60.96 GiB total capacity; 12.74 GiB already allocated; 12.74 GiB current active; 46.15 GiB free; 14.63 GiB allowed; 13.03 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank:7]:[21597] [2026-09-28 07:24:39:197] torch_npu.memory: [ERROR] [22035] NPU out of memory. Tried to allocate 2.00 GiB (NPU 7; 60.96 GiB total capacity; 12.74 GiB already allocated; 12.74 GiB current active; 46.14 GiB free; 14.63 GiB allowed; 13.03 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank:1]:[21591] [2026-09-28 07:24:39:199] torch_npu.memory: [ERROR] [21989] NPU out of memory. Tried to allocate 1.00 GiB (NPU 1; 60.96 GiB total capacity; 12.25 GiB already allocated; 12.25 GiB current active; 45.46 GiB free; 14.63 GiB allowed; 13.71 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank2]: Traceback (most recent call last):
+[rank2]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank2]:     main()
+[rank2]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 168, in main
+[rank2]:     output.backward(upstream)
+[rank2]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/_tensor.py", line 625, in backward
+[rank2]:     torch.autograd.backward(
+[rank2]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py", line 354, in backward
+[rank2]:     _engine_run_backward(
+[rank2]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+[rank2]:     return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 2.00 GiB (NPU 2; 60.96 GiB total capacity; 12.74 GiB already allocated; 12.74 GiB current active; 46.15 GiB free; 14.63 GiB allowed; 13.03 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank7]: Traceback (most recent call last):
+[rank7]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank7]:     main()
+[rank7]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 168, in main
+[rank7]:     output.backward(upstream)
+[rank7]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/_tensor.py", line 625, in backward
+[rank7]:     torch.autograd.backward(
+[rank7]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py", line 354, in backward
+[rank7]:     _engine_run_backward(
+[rank7]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+[rank7]:     return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[rank7]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank7]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 2.00 GiB (NPU 7; 60.96 GiB total capacity; 12.74 GiB already allocated; 12.74 GiB current active; 46.14 GiB free; 14.63 GiB allowed; 13.03 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank1]: Traceback (most recent call last):
+[rank1]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank1]:     main()
+[rank1]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 168, in main
+[rank1]:     output.backward(upstream)
+[rank1]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/_tensor.py", line 625, in backward
+[rank1]:     torch.autograd.backward(
+[rank1]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py", line 354, in backward
+[rank1]:     _engine_run_backward(
+[rank1]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+[rank1]:     return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/function.py", line 315, in apply
+[rank1]:     return user_fn(self, *args)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/experiment/baseline/veomni/distributed/moe/hiermoe/all_to_all.py", line 836, in backward
+[rank1]:     grad_source = grad_output.index_select(0, index.to(torch.long))
+[rank1]:                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 1.00 GiB (NPU 1; 60.96 GiB total capacity; 12.25 GiB already allocated; 12.25 GiB current active; 45.46 GiB free; 14.63 GiB allowed; 13.71 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank:3]:[21593] [2026-09-28 07:24:39:233] torch_npu.memory: [ERROR] [22016] NPU out of memory. Tried to allocate 2.01 GiB (NPU 3; 60.96 GiB total capacity; 12.77 GiB already allocated; 12.77 GiB current active; 46.12 GiB free; 14.63 GiB allowed; 13.05 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank:6]:[21596] [2026-09-28 07:24:39:233] torch_npu.memory: [ERROR] [22031] NPU out of memory. Tried to allocate 2.01 GiB (NPU 6; 60.96 GiB total capacity; 12.79 GiB already allocated; 12.79 GiB current active; 46.09 GiB free; 14.63 GiB allowed; 13.08 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank:0]:[21590] [2026-09-28 07:24:39:236] torch_npu.memory: [ERROR] [22004] NPU out of memory. Tried to allocate 2.00 GiB (NPU 0; 60.96 GiB total capacity; 12.72 GiB already allocated; 12.72 GiB current active; 46.15 GiB free; 14.63 GiB allowed; 13.02 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank3]: Traceback (most recent call last):
+[rank3]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank3]:     main()
+[rank3]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 168, in main
+[rank3]:     output.backward(upstream)
+[rank3]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/_tensor.py", line 625, in backward
+[rank3]:     torch.autograd.backward(
+[rank3]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py", line 354, in backward
+[rank3]:     _engine_run_backward(
+[rank3]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+[rank3]:     return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 2.01 GiB (NPU 3; 60.96 GiB total capacity; 12.77 GiB already allocated; 12.77 GiB current active; 46.12 GiB free; 14.63 GiB allowed; 13.05 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank6]: Traceback (most recent call last):
+[rank6]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank6]:     main()
+[rank6]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 168, in main
+[rank6]:     output.backward(upstream)
+[rank6]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/_tensor.py", line 625, in backward
+[rank6]:     torch.autograd.backward(
+[rank6]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py", line 354, in backward
+[rank6]:     _engine_run_backward(
+[rank6]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+[rank6]:     return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[rank6]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 2.01 GiB (NPU 6; 60.96 GiB total capacity; 12.79 GiB already allocated; 12.79 GiB current active; 46.09 GiB free; 14.63 GiB allowed; 13.08 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank:5]:[21595] [2026-09-28 07:24:39:237] torch_npu.memory: [ERROR] [21992] NPU out of memory. Tried to allocate 2.00 GiB (NPU 5; 60.96 GiB total capacity; 12.75 GiB already allocated; 12.75 GiB current active; 46.14 GiB free; 14.63 GiB allowed; 13.03 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank:4]:[21594] [2026-09-28 07:24:39:238] torch_npu.memory: [ERROR] [22043] NPU out of memory. Tried to allocate 2.00 GiB (NPU 4; 60.96 GiB total capacity; 12.74 GiB already allocated; 12.74 GiB current active; 46.15 GiB free; 14.63 GiB allowed; 13.03 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank0]:     main()
+[rank0]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 168, in main
+[rank0]:     output.backward(upstream)
+[rank0]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/_tensor.py", line 625, in backward
+[rank0]:     torch.autograd.backward(
+[rank0]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py", line 354, in backward
+[rank0]:     _engine_run_backward(
+[rank0]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+[rank0]:     return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 2.00 GiB (NPU 0; 60.96 GiB total capacity; 12.72 GiB already allocated; 12.72 GiB current active; 46.15 GiB free; 14.63 GiB allowed; 13.02 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank5]: Traceback (most recent call last):
+[rank5]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank5]:     main()
+[rank5]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 168, in main
+[rank5]:     output.backward(upstream)
+[rank5]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/_tensor.py", line 625, in backward
+[rank5]:     torch.autograd.backward(
+[rank5]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py", line 354, in backward
+[rank5]:     _engine_run_backward(
+[rank5]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+[rank5]:     return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[rank5]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank5]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 2.00 GiB (NPU 5; 60.96 GiB total capacity; 12.75 GiB already allocated; 12.75 GiB current active; 46.14 GiB free; 14.63 GiB allowed; 13.03 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[rank4]: Traceback (most recent call last):
+[rank4]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 211, in <module>
+[rank4]:     main()
+[rank4]:   File "/workspace/scripts/placemoe/benchmark_moe_memory.py", line 168, in main
+[rank4]:     output.backward(upstream)
+[rank4]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/_tensor.py", line 625, in backward
+[rank4]:     torch.autograd.backward(
+[rank4]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/__init__.py", line 354, in backward
+[rank4]:     _engine_run_backward(
+[rank4]:   File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+[rank4]:     return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[rank4]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank4]: torch.OutOfMemoryError: NPU out of memory. Tried to allocate 2.00 GiB (NPU 4; 60.96 GiB total capacity; 12.74 GiB already allocated; 12.74 GiB current active; 46.15 GiB free; 14.63 GiB allowed; 13.03 GiB reserved in total by PyTorch).If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.
+[ERROR] 2026-09-28-07:24:41 (PID:21592, Device:2, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+[ERROR] 2026-09-28-07:24:42 (PID:21590, Device:0, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+[ERROR] 2026-09-28-07:24:42 (PID:21593, Device:3, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+[ERROR] 2026-09-28-07:24:42 (PID:21591, Device:1, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+[ERROR] 2026-09-28-07:24:42 (PID:21594, Device:4, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+[ERROR] 2026-09-28-07:24:42 (PID:21597, Device:7, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+[ERROR] 2026-09-28-07:24:42 (PID:21595, Device:5, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+[ERROR] 2026-09-28-07:24:42 (PID:21596, Device:6, RankID:-1) ERR99999 UNKNOWN applicaiton exception
+W0928 07:24:47.270000 21585 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 21590 closing signal SIGTERM
+W0928 07:24:47.270000 21585 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 21591 closing signal SIGTERM
+W0928 07:24:47.271000 21585 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 21593 closing signal SIGTERM
+W0928 07:24:47.271000 21585 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 21594 closing signal SIGTERM
+W0928 07:24:47.271000 21585 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 21595 closing signal SIGTERM
+W0928 07:24:47.272000 21585 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 21596 closing signal SIGTERM
+W0928 07:24:47.272000 21585 site-packages/torch/distributed/elastic/multiprocessing/api.py:908] Sending process 21597 closing signal SIGTERM
+E0928 07:24:48.302000 21585 site-packages/torch/distributed/elastic/multiprocessing/api.py:882] failed (exitcode: 1) local_rank: 2 (pid: 21592) of binary: /opt/placemoe/.venv/bin/python
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/run.py", line 940, in <module>
+    main()
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 357, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/run.py", line 936, in main
+    run(args)
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/run.py", line 927, in run
+    elastic_launch(
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 156, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/python3.11.15/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 293, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError:
+============================================================
+/workspace/scripts/placemoe/benchmark_moe_memory.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-09-28_07:24:47
+  host      : liteserver-c009-5-1
+  rank      : 2 (local_rank: 2)
+  exitcode  : 1 (pid: 21592)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
+[ERROR] 2026-09-28-07:24:48 (PID:21585, Device:-1, RankID:-1) ERR99999 UNKNOWN applicaiton exception

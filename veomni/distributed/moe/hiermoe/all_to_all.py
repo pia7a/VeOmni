@@ -878,6 +878,69 @@ def _index_add_dim0_fp32(output: torch.Tensor, index: torch.Tensor, source: torc
     return output
 
 
+def _npu_reduce_rows(source, index, num_rows, weights=None):
+    """Called inside custom forward, where no per-tile autograd graph is built."""
+    width = int(source.shape[1])
+    output = torch.empty((int(num_rows), width), dtype=source.dtype, device=source.device)
+    if weights is not None:
+        weights = weights.to(source.dtype)
+    # Columns are independent reductions with the same source-row chunks and
+    # FP32 precision. Changing kernel width may change internal reduction order
+    # at rounding boundaries; this is not a bitwise-equivalence guarantee.
+    for start in range(0, width, 1024):
+        end = min(start + 1024, width)
+        values = source[:, start:end]
+        if weights is not None:
+            values = values * weights
+        accum = torch.zeros((int(num_rows), end - start), dtype=torch.float32, device=source.device)
+        accum = _index_add_dim0_fp32(accum, index, values)
+        output[:, start:end].copy_(accum)
+        del accum, values
+    return output
+
+
+class _NpuIndexAddDim0CastOutput(torch.autograd.Function):
+    """Tile FP32 accumulation and use a single gather for its adjoint."""
+
+    @staticmethod
+    def forward(ctx, source: torch.Tensor, index: torch.Tensor, num_rows: int) -> torch.Tensor:
+        ctx.save_for_backward(index)
+        return _npu_reduce_rows(source, index, num_rows)
+
+    @staticmethod
+    def backward(ctx, grad_output: torch.Tensor) -> tuple[torch.Tensor, None, None]:
+        (index,) = ctx.saved_tensors
+        # The adjoint of row summation is a gather. Expanding each chunk's
+        # slice gradient to the entire source would allocate it repeatedly.
+        return grad_output.index_select(0, index.to(torch.long)), None, None
+
+
+class _NpuWeightedIndexAddDim0CastOutput(torch.autograd.Function):
+    """Bound the broadcast-multiply adjoint before the first combine exchange."""
+
+    @staticmethod
+    def forward(ctx, source, weights, index, num_rows):
+        ctx.save_for_backward(source, weights, index)
+        return _npu_reduce_rows(source, index, num_rows, weights)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        source, weights, index = ctx.saved_tensors
+        grad_source = torch.empty_like(source) if ctx.needs_input_grad[0] else None
+        grad_weights = torch.empty_like(weights) if ctx.needs_input_grad[1] else None
+        # A generic broadcast-multiply backward materializes an assignment by
+        # hidden-size product just to reduce it to one routing gradient per row.
+        # Row chunks preserve each row's full-width sum and bound that scratch.
+        for start in range(0, int(source.shape[0]), 16384):
+            end = min(start + 16384, int(source.shape[0]))
+            gathered = grad_output.index_select(0, index[start:end].to(torch.long))
+            if grad_weights is not None:
+                grad_weights[start:end].copy_((gathered * source[start:end]).sum(dim=1, keepdim=True))
+            if grad_source is not None:
+                grad_source[start:end].copy_(gathered * weights[start:end].to(source.dtype))
+        return grad_source, grad_weights, None, None
+
+
 class _CudaIndexAddDim0CastOutput(torch.autograd.Function):
     @staticmethod
     def forward(ctx, source: torch.Tensor, index: torch.Tensor, num_rows: int) -> torch.Tensor:
@@ -903,6 +966,8 @@ def _index_add_dim0_cast_output(
     num_rows = int(num_rows)
     if int(index.numel()) != int(source.shape[0]):
         raise ValueError(f"index/source row mismatch: index={index.numel()} source={source.shape[0]}.")
+    if source.device.type == "npu" and is_torch_npu_available():
+        return _NpuIndexAddDim0CastOutput.apply(source, index, num_rows)
     use_cuda_segment_sum = os.getenv("VEOMNI_HIERMOE_CUDA_SEGMENT_SUM", "1").strip().lower() not in {
         "0",
         "false",
@@ -1542,6 +1607,9 @@ def _hierarchical_dedup_dispatch(
         stage1_assignment_recv_splits,
         stage1_assignment_send_splits,
     )
+    # The paired exchange has waited for both sends. Do not retain its
+    # full payload while building and receiving the next-stage payload.
+    del stage1_send_hidden, stage1_send_meta, stage1_send_weights, stage1_send_meta_weights
     stage1_a2a_end = _hiermoe_internal_event()
     if stage1_a2a_start is not None and stage1_a2a_end is not None and internal_timing_events is not None:
         internal_timing_events["stage1_a2a"] = (stage1_a2a_start, stage1_a2a_end)
@@ -1589,6 +1657,8 @@ def _hierarchical_dedup_dispatch(
             "stage2_payload_build",
             internal_start,
         )
+    # Index-select backward needs indices and input shape, not input values.
+    del stage1_recv_hidden, stage1_recv_meta, stage1_recv_weights, stage1_recv_meta_weights
     span = _begin_internal_span("hiermoe_stage2_split_sizes_start")
     try:
         stage2_split_exchange = _start_exchange_split_sizes_many(
@@ -1632,6 +1702,7 @@ def _hierarchical_dedup_dispatch(
         stage2_assignment_recv_splits,
         stage2_assignment_send_splits,
     )
+    del stage2_send_hidden, stage2_send_meta, stage2_send_weights, stage2_send_meta_weights
     stage2_a2a_end = _hiermoe_internal_event()
     if stage2_a2a_start is not None and stage2_a2a_end is not None and internal_timing_events is not None:
         internal_timing_events["stage2_a2a"] = (stage2_a2a_start, stage2_a2a_end)
@@ -2250,20 +2321,28 @@ def _hierarchical_dedup_combine(expert_outputs: torch.Tensor, ctx: RankDedupDisp
     internal_start = _hiermoe_internal_event()
     span = _begin_internal_span("hiermoe_combine_stage2_accum")
     try:
-        weighted_outputs = expert_outputs * ctx.recv_assignment_weights.to(expert_outputs.dtype)
         stage2_recv_count = sum(ctx.stage2_unique_recv_splits or [])
         if ctx.recv_unique_indices is None:
             stage2_accum = torch.zeros(
                 (stage2_recv_count, ctx.hidden_size),
-                dtype=weighted_outputs.dtype,
-                device=weighted_outputs.device,
+                dtype=expert_outputs.dtype,
+                device=expert_outputs.device,
+            )
+        elif expert_outputs.device.type == "npu" and is_torch_npu_available():
+            stage2_accum = _NpuWeightedIndexAddDim0CastOutput.apply(
+                expert_outputs,
+                ctx.recv_assignment_weights,
+                ctx.recv_unique_indices,
+                stage2_recv_count,
             )
         else:
+            weighted_outputs = expert_outputs * ctx.recv_assignment_weights.to(expert_outputs.dtype)
             stage2_accum = _index_add_dim0_cast_output(
                 weighted_outputs,
                 ctx.recv_unique_indices,
                 stage2_recv_count,
             )
+            del weighted_outputs
     finally:
         _end_internal_span(span)
         _finish_hiermoe_internal_event(
@@ -2271,11 +2350,6 @@ def _hierarchical_dedup_combine(expert_outputs: torch.Tensor, ctx: RankDedupDisp
             "combine_stage2_accum",
             internal_start,
         )
-    # The weighted expert output is no longer consumed after the stage-2
-    # accumulation.  Drop its Python reference before materializing the BF16
-    # communication buffer; for long-sequence workloads both tensors can be
-    # hundreds of MiB and otherwise overlap until this function returns.
-    del weighted_outputs
     stage2_send = _mark_backward_a2a_input(
         stage2_accum,
         ctx.backward_internal_timing_events,

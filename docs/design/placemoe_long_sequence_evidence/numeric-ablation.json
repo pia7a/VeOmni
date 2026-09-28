@@ -1,0 +1,20 @@
+{
+  "hash-gather-only-32k": {
+    "old": [],
+    "optimized": [
+      [
+        5,
+        "output"
+      ]
+    ]
+  },
+  "hash-column-only-32k": {
+    "old": [
+      [
+        5,
+        "output"
+      ]
+    ],
+    "optimized": []
+  }
+}

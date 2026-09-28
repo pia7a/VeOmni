@@ -1,0 +1,1422 @@
+ruff check tasks tests veomni docs
+All checks passed!
+ruff format --check tasks tests veomni docs
+unformatted: File would be reformatted
+   --> docs/design/patchgen.md:94:1
+    |
+93  |
+    - class OptimizedQwen3Model(Qwen3Model):
+    -     ...
+94  +
+95  + class OptimizedQwen3Model(Qwen3Model): ...
+96  +
+97  +
+98  | Qwen3Model = OptimizedQwen3Model  # Who knows what this is now?
+--------------------------------------------------------------------------------
+268 |     # ======================================================================
+    -     class Qwen3RMSNorm(nn.Module):
+    -         ...
+269 +     class Qwen3RMSNorm(nn.Module): ...
+270 |     ```
+--------------------------------------------------------------------------------
+362 | generator.load_source()
+    - output = generator.generate(
+    -     Path("veomni/models/transformers/qwen3/generated/patched_modeling_qwen3_gpu.py")
+    - )
+363 + output = generator.generate(Path("veomni/models/transformers/qwen3/generated/patched_modeling_qwen3_gpu.py"))
+364 | ```
+--------------------------------------------------------------------------------
+552 |     DiscoveryConfig,
+    -     ModelingCodeGenerator,        # programmatic codegen
+    -     build_run_codegen_cli,        # main()-shaped CLI factory
+    -     build_check_cli,              # main()-shaped drift-check factory
+553 +     ModelingCodeGenerator,  # programmatic codegen
+554 +     build_run_codegen_cli,  # main()-shaped CLI factory
+555 +     build_check_cli,  # main()-shaped drift-check factory
+556 |     list_patch_configs,
+    |
+
+unformatted: File would be reformatted
+   --> docs/design/unified_kernel_registry.md:77:1
+    |
+76  |
+77  +
+78  | @dataclass(frozen=True)
+79  | class HardwareRequirement:
+    -     device_type: str                              # "cuda" | "npu"
+    -     min_compute_capability: int | None = None     # e.g. 70, 80, 90
+80  +     device_type: str  # "cuda" | "npu"
+81  +     min_compute_capability: int | None = None  # e.g. 70, 80, 90
+82  |
+--------------------------------------------------------------------------------
+86  |
+87  +
+88  | @dataclass(frozen=True)
+89  | class KernelSpec:
+    -     name: str              # e.g. "liger", "triton_group_gemm"
+    -     op_name: str           # e.g. "rms_norm"
+    -     variant: str           # e.g. "standard"
+    -     factory: callable      # () -> callable  (lazy import)
+90  +     name: str  # e.g. "liger", "triton_group_gemm"
+91  +     op_name: str  # e.g. "rms_norm"
+92  +     variant: str  # e.g. "standard"
+93  +     factory: callable  # () -> callable  (lazy import)
+94  |     hardware: HardwareRequirement
+95  |     description: str = ""
+96  |
+97  +
+98  | class KernelRegistry:
+--------------------------------------------------------------------------------
+134 |             available = ["eager"] + list(specs.keys())
+    -             raise KeyError(
+    -                 f"No kernel '{impl_name}' for op='{op_name}', variant='{variant}'. "
+    -                 f"Available: {available}"
+    -             )
+135 +             raise KeyError(f"No kernel '{impl_name}' for op='{op_name}', variant='{variant}'. Available: {available}")
+136 |         spec = specs[impl_name]
+137 |         if not spec.hardware.is_satisfied():
+138 |             raise RuntimeError(
+    -                 f"Kernel '{impl_name}' requires {spec.hardware} "
+    -                 f"but current hardware does not satisfy it."
+139 +                 f"Kernel '{impl_name}' requires {spec.hardware} but current hardware does not satisfy it."
+140 |             )
+--------------------------------------------------------------------------------
+144 |         key = (op_name, variant)
+    -         return ["eager"] + [
+    -             name for name, spec in self._specs.get(key, {}).items()
+    -             if spec.hardware.is_satisfied()
+    -         ]
+145 +         return ["eager"] + [name for name, spec in self._specs.get(key, {}).items() if spec.hardware.is_satisfied()]
+146 +
+147 |
+--------------------------------------------------------------------------------
+158 | # -- rms_norm (standard) --
+    - KERNEL_REGISTRY.register(KernelSpec(
+    -     name="liger",
+    -     op_name="rms_norm", variant="standard",
+    -     factory=lambda: __import__(
+    -         "liger_kernel.transformers.rms_norm", fromlist=["LigerRMSNorm"]
+    -     ).LigerRMSNorm,
+    -     hardware=HardwareRequirement("cuda"),
+    - ))
+159 + KERNEL_REGISTRY.register(
+160 +     KernelSpec(
+161 +         name="liger",
+162 +         op_name="rms_norm",
+163 +         variant="standard",
+164 +         factory=lambda: __import__("liger_kernel.transformers.rms_norm", fromlist=["LigerRMSNorm"]).LigerRMSNorm,
+165 +         hardware=HardwareRequirement("cuda"),
+166 +     )
+167 + )
+168 | # Note: no liger for rms_norm variant="qwen3_5" — only "eager" is available.
+169 |
+170 | # -- apply_rotary_pos_emb (full) --
+    - KERNEL_REGISTRY.register(KernelSpec(
+    -     name="liger",
+    -     op_name="apply_rotary_pos_emb", variant="full",
+    -     factory=lambda: __import__(
+    -         "liger_kernel.transformers.rope", fromlist=["liger_rotary_pos_emb"]
+    -     ).liger_rotary_pos_emb,
+    -     hardware=HardwareRequirement("cuda"),
+    - ))
+171 + KERNEL_REGISTRY.register(
+172 +     KernelSpec(
+173 +         name="liger",
+174 +         op_name="apply_rotary_pos_emb",
+175 +         variant="full",
+176 +         factory=lambda: (
+177 +             __import__("liger_kernel.transformers.rope", fromlist=["liger_rotary_pos_emb"]).liger_rotary_pos_emb
+178 +         ),
+179 +         hardware=HardwareRequirement("cuda"),
+180 +     )
+181 + )
+182 | # Note: no liger for variant="partial" — only "eager" is available.
+183 |
+184 | # -- swiglu_mlp --
+    - KERNEL_REGISTRY.register(KernelSpec(
+    -     name="liger",
+    -     op_name="swiglu_mlp", variant="standard",
+    -     factory=lambda: __import__(
+    -         "liger_kernel.transformers.swiglu", fromlist=["LigerSwiGLUMLP"]
+    -     ).LigerSwiGLUMLP,
+    -     hardware=HardwareRequirement("cuda"),
+    - ))
+185 + KERNEL_REGISTRY.register(
+186 +     KernelSpec(
+187 +         name="liger",
+188 +         op_name="swiglu_mlp",
+189 +         variant="standard",
+190 +         factory=lambda: __import__("liger_kernel.transformers.swiglu", fromlist=["LigerSwiGLUMLP"]).LigerSwiGLUMLP,
+191 +         hardware=HardwareRequirement("cuda"),
+192 +     )
+193 + )
+194 |
+195 | # -- moe_experts --
+    - KERNEL_REGISTRY.register(KernelSpec(
+    -     name="triton_group_gemm",
+    -     op_name="moe_experts", variant="standard",
+    -     factory=lambda: __import__(
+    -         "veomni.ops.fused_moe.group_gemm", fromlist=["group_gemm_fused_moe_forward"]
+    -     ).group_gemm_fused_moe_forward,
+    -     hardware=HardwareRequirement("cuda", min_compute_capability=70),
+    - ))
+    - KERNEL_REGISTRY.register(KernelSpec(
+    -     name="quack_cutlass",
+    -     op_name="moe_experts", variant="standard",
+    -     factory=lambda: __import__(
+    -         "veomni.ops.fused_moe.quack_gemm", fromlist=["quack_gemm_fused_moe_forward"]
+    -     ).quack_gemm_fused_moe_forward,
+    -     hardware=HardwareRequirement("cuda", min_compute_capability=90),
+    - ))
+196 + KERNEL_REGISTRY.register(
+197 +     KernelSpec(
+198 +         name="triton_group_gemm",
+199 +         op_name="moe_experts",
+200 +         variant="standard",
+201 +         factory=lambda: (
+202 +             __import__(
+203 +                 "veomni.ops.fused_moe.group_gemm", fromlist=["group_gemm_fused_moe_forward"]
+204 +             ).group_gemm_fused_moe_forward
+205 +         ),
+206 +         hardware=HardwareRequirement("cuda", min_compute_capability=70),
+207 +     )
+208 + )
+209 + KERNEL_REGISTRY.register(
+210 +     KernelSpec(
+211 +         name="quack_cutlass",
+212 +         op_name="moe_experts",
+213 +         variant="standard",
+214 +         factory=lambda: (
+215 +             __import__(
+216 +                 "veomni.ops.fused_moe.quack_gemm", fromlist=["quack_gemm_fused_moe_forward"]
+217 +             ).quack_gemm_fused_moe_forward
+218 +         ),
+219 +         hardware=HardwareRequirement("cuda", min_compute_capability=90),
+220 +     )
+221 + )
+222 |
+223 | # -- cross_entropy_loss (split by task to avoid mixing causal-LM label
+224 | #    shifting with sequence-classification token-level labels) --
+    - KERNEL_REGISTRY.register(KernelSpec(
+    -     name="liger_kernel",
+    -     op_name="cross_entropy_loss", variant="causal",
+    -     factory=_liger_fused_ce_causal_factory,   # partial(ForCausalLMLoss, cross_entropy_fn=liger)
+    -     hardware=HardwareRequirement("cuda"),
+    - ))
+    - KERNEL_REGISTRY.register(KernelSpec(
+    -     name="liger_kernel",
+    -     op_name="cross_entropy_loss", variant="seq_cls",
+    -     factory=_liger_fused_ce_seq_cls_factory,  # partial(ForSequenceClassificationLoss, cross_entropy_fn=liger)
+    -     hardware=HardwareRequirement("cuda"),
+    - ))
+225 + KERNEL_REGISTRY.register(
+226 +     KernelSpec(
+227 +         name="liger_kernel",
+228 +         op_name="cross_entropy_loss",
+229 +         variant="causal",
+230 +         factory=_liger_fused_ce_causal_factory,  # partial(ForCausalLMLoss, cross_entropy_fn=liger)
+231 +         hardware=HardwareRequirement("cuda"),
+232 +     )
+233 + )
+234 + KERNEL_REGISTRY.register(
+235 +     KernelSpec(
+236 +         name="liger_kernel",
+237 +         op_name="cross_entropy_loss",
+238 +         variant="seq_cls",
+239 +         factory=_liger_fused_ce_seq_cls_factory,  # partial(ForSequenceClassificationLoss, cross_entropy_fn=liger)
+240 +         hardware=HardwareRequirement("cuda"),
+241 +     )
+242 + )
+243 | # NPU chunk-loss backs the causal variant only; chunk_loss hard-codes the
+244 | # `labels[..., 1:]` shift so ForSequenceClassification stays on eager.
+    - KERNEL_REGISTRY.register(KernelSpec(
+    -     name="npu",
+    -     op_name="cross_entropy_loss", variant="causal",
+    -     factory=_npu_chunk_loss_causal_factory,   # chunk_loss_function (handles SP reduction internally)
+    -     hardware=HardwareRequirement("npu"),
+    - ))
+245 + KERNEL_REGISTRY.register(
+246 +     KernelSpec(
+247 +         name="npu",
+248 +         op_name="cross_entropy_loss",
+249 +         variant="causal",
+250 +         factory=_npu_chunk_loss_causal_factory,  # chunk_loss_function (handles SP reduction internally)
+251 +         hardware=HardwareRequirement("npu"),
+252 +     )
+253 + )
+254 | ```
+--------------------------------------------------------------------------------
+261 |
+    - KERNEL_REGISTRY.register(KernelSpec(
+    -     name="internal_fast_rmsnorm",
+    -     op_name="rms_norm", variant="standard",
+    -     factory=lambda: ...,
+    -     hardware=HardwareRequirement("cuda", min_compute_capability=80),
+    - ))
+262 + KERNEL_REGISTRY.register(
+263 +     KernelSpec(
+264 +         name="internal_fast_rmsnorm",
+265 +         op_name="rms_norm",
+266 +         variant="standard",
+267 +         factory=lambda: ...,
+268 +         hardware=HardwareRequirement("cuda", min_compute_capability=80),
+269 +     )
+270 + )
+271 | ```
+--------------------------------------------------------------------------------
+289 |     attn_implementation: Literal[
+    -         "eager", "sdpa",
+    -         "flash_attention_2", "flash_attention_3", "flash_attention_4",
+290 +         "eager",
+291 +         "sdpa",
+292 +         "flash_attention_2",
+293 +         "flash_attention_3",
+294 +         "flash_attention_4",
+295 |         "native-sparse",
+--------------------------------------------------------------------------------
+345 |
+346 +
+347 | class OpSlot:
+--------------------------------------------------------------------------------
+353 |     """
+354 +
+355 |     def __init__(self, op_name: str, variant: str):
+--------------------------------------------------------------------------------
+414 |
+415 +
+416 | def _bind_veomni_ops(modeling_module, ops_config: OpsImplementationConfig):
+--------------------------------------------------------------------------------
+424 |                 impl_name = (
+    -                     "eager" if ops_config.moe_implementation == "eager"
+425 +                     "eager"
+426 +                     if ops_config.moe_implementation == "eager"
+427 |                     else ops_config.moe_implementation.removeprefix("fused_")
+--------------------------------------------------------------------------------
+480 |
+481 +
+482 | # Add guard at top of function — body is original HF code
+--------------------------------------------------------------------------------
+499 |
+500 +
+501 | # Attention.forward: NO PATCH — call site stays as HF original:
+--------------------------------------------------------------------------------
+552 |
+553 +
+554 | class Qwen3_5MoeExperts(nn.Module):
+--------------------------------------------------------------------------------
+561 |         if veomni_moe_experts_forward.use_non_eager_impl:
+    -             return veomni_moe_experts_forward(
+    -                 self, hidden_states, top_k_index, top_k_weights
+    -             )
+562 +             return veomni_moe_experts_forward(self, hidden_states, top_k_index, top_k_weights)
+563 |         # --- original HF code below, unchanged ---
+564 |         final_hidden_states = torch.zeros_like(hidden_states)
+565 |         with torch.no_grad():
+    -             expert_mask = torch.nn.functional.one_hot(
+    -                 top_k_index, num_classes=self.num_experts
+    -             )
+566 +             expert_mask = torch.nn.functional.one_hot(top_k_index, num_classes=self.num_experts)
+567 |             expert_mask = expert_mask.permute(2, 1, 0)
+    -             expert_hit = torch.greater(
+    -                 expert_mask.sum(dim=(-1, -2)), 0
+    -             ).nonzero()
+568 +             expert_hit = torch.greater(expert_mask.sum(dim=(-1, -2)), 0).nonzero()
+569 |         for expert_idx in expert_hit:
+--------------------------------------------------------------------------------
+574 |             current_state = hidden_states[token_idx]
+    -             gate, up = nn.functional.linear(
+    -                 current_state, self.gate_up_proj[expert_idx]
+    -             ).chunk(2, dim=-1)
+575 +             gate, up = nn.functional.linear(current_state, self.gate_up_proj[expert_idx]).chunk(2, dim=-1)
+576 |             current_hidden_states = self.act_fn(gate) * up
+    -             current_hidden_states = nn.functional.linear(
+    -                 current_hidden_states, self.down_proj[expert_idx]
+    -             )
+    -             current_hidden_states = (
+    -                 current_hidden_states
+    -                 * top_k_weights[token_idx, top_k_pos, None]
+    -             )
+577 +             current_hidden_states = nn.functional.linear(current_hidden_states, self.down_proj[expert_idx])
+578 +             current_hidden_states = current_hidden_states * top_k_weights[token_idx, top_k_pos, None]
+579 |             final_hidden_states.index_add_(
+    -                 0, token_idx,
+580 +                 0,
+581 +                 token_idx,
+582 |                 current_hidden_states.to(final_hidden_states.dtype),
+--------------------------------------------------------------------------------
+702 |
+703 +
+704 | # Original HF function — UNCHANGED
+--------------------------------------------------------------------------------
+709 |
+    - # Call site in ForCausalLM/ForConditionalGeneration.forward:
+710 +     # Call site in ForCausalLM/ForConditionalGeneration.forward:
+711 |     # +++ veomni: kernel dispatch +++
+    |
+
+unformatted: File would be reformatted
+  --> docs/design/verl_topk_distill_integration.md:15:33
+   |
+14 | ```python
+   - teacher_topk_ids: torch.Tensor          # [B, L, K] int64 (dense)
+   - teacher_topk_log_probs: torch.Tensor    # [B, L, K] fp32
+   - log_prob_min_clamp: float | None = None # optional, matches DistillationLossConfig
+15 + teacher_topk_ids: torch.Tensor  # [B, L, K] int64 (dense)
+16 + teacher_topk_log_probs: torch.Tensor  # [B, L, K] fp32
+17 + log_prob_min_clamp: float | None = None  # optional, matches DistillationLossConfig
+18 | ```
+--------------------------------------------------------------------------------
+56 | ```python
+   - distillation_use_topk = tu.get_non_tensor_data(
+   -     data=micro_batch, key="distillation_use_topk", default=False
+   - )
+57 + distillation_use_topk = tu.get_non_tensor_data(data=micro_batch, key="distillation_use_topk", default=False)
+58 | if distillation_use_topk:
+   |
+
+unformatted: File would be reformatted
+  --> docs/examples/qwen3.md:8:1
+  |
+7 | import pyarrow.parquet as pq
+8 +
+9 | input_path = "tulu-3-sft-mixture/data/train-00000-of-00006.parquet"
+  |
+
+unformatted: File would be reformatted
+  --> docs/examples/qwen3_5.md:23:1
+   |
+22 | import json
+   - with open('sharegpt4v_instruct_gpt4-vision_cap100k.json', 'r', encoding='utf-8') as f:
+23 +
+24 + with open("sharegpt4v_instruct_gpt4-vision_cap100k.json", "r", encoding="utf-8") as f:
+25 |     data = json.load(f)
+26 | filtered_data = []
+27 | for item in data:
+   -     if item.get('image', '').startswith('coco'):
+28 +     if item.get("image", "").startswith("coco"):
+29 |         new_item = item.copy()
+   -         image_path = new_item.pop('image')
+   -         new_item['images'] = [image_path]
+30 +         image_path = new_item.pop("image")
+31 +         new_item["images"] = [image_path]
+32 |         filtered_data.append(new_item)
+   - with open('sharegpt4v_instruct_gpt4-vision_cap100k_coco.json', 'w', encoding='utf-8') as f:
+33 + with open("sharegpt4v_instruct_gpt4-vision_cap100k_coco.json", "w", encoding="utf-8") as f:
+34 |     json.dump(filtered_data, f, ensure_ascii=False, indent=4)
+--------------------------------------------------------------------------------
+42 | import pyarrow.parquet as pq
+43 +
+44 | input_path = "tulu-3-sft-mixture/data/train-00000-of-00006.parquet"
+   |
+
+unformatted: File would be reformatted
+  --> docs/examples/qwen3_omni_moe.md:12:1
+   |
+11 | import json
+   - with open('sharegpt4v_instruct_gpt4-vision_cap100k.json', 'r', encoding='utf-8') as f:
+12 +
+13 + with open("sharegpt4v_instruct_gpt4-vision_cap100k.json", "r", encoding="utf-8") as f:
+14 |     data = json.load(f)
+15 | filtered_data = []
+16 | for item in data:
+   -     if item.get('image', '').startswith('coco'):
+17 +     if item.get("image", "").startswith("coco"):
+18 |         new_item = item.copy()
+   -         image_path = new_item.pop('image')
+   -         new_item['images'] = [image_path]
+19 +         image_path = new_item.pop("image")
+20 +         new_item["images"] = [image_path]
+21 |         filtered_data.append(new_item)
+   - with open('sharegpt4v_instruct_gpt4-vision_cap100k_coco.json', 'w', encoding='utf-8') as f:
+22 + with open("sharegpt4v_instruct_gpt4-vision_cap100k_coco.json", "w", encoding="utf-8") as f:
+23 |     json.dump(filtered_data, f, ensure_ascii=False, indent=4)
+--------------------------------------------------------------------------------
+65 | import json
+   - with open('0_30_s_academic_mc_v0_1_qa_processed.json', 'r', encoding='utf-8') as f:
+66 +
+67 + with open("0_30_s_academic_mc_v0_1_qa_processed.json", "r", encoding="utf-8") as f:
+68 |     data = json.load(f)
+69 | new_data = []
+70 | for item in data:
+71 |     new_item = item.copy()
+   -     image_path = new_item.pop('video')
+   -     new_item['videos'] = [image_path]
+   -     new_data.append(new_item)
+   - with open('video.json', 'w', encoding='utf-8') as f:
+72 +     image_path = new_item.pop("video")
+73 +     new_item["videos"] = [image_path]
+74 +     new_data.append(new_item)
+75 + with open("video.json", "w", encoding="utf-8") as f:
+76 |     json.dump(new_data, f, ensure_ascii=False, indent=4)
+   |
+
+unformatted: File would be reformatted
+  --> docs/examples/qwen3_vl.md:11:1
+   |
+10 | import json
+   - with open('sharegpt4v_instruct_gpt4-vision_cap100k.json', 'r', encoding='utf-8') as f:
+11 +
+12 + with open("sharegpt4v_instruct_gpt4-vision_cap100k.json", "r", encoding="utf-8") as f:
+13 |     data = json.load(f)
+14 | filtered_data = []
+15 | for item in data:
+   -     if item.get('image', '').startswith('coco'):
+16 +     if item.get("image", "").startswith("coco"):
+17 |         new_item = item.copy()
+   -         image_path = new_item.pop('image')
+   -         new_item['images'] = [image_path]
+18 +         image_path = new_item.pop("image")
+19 +         new_item["images"] = [image_path]
+20 |         filtered_data.append(new_item)
+   - with open('sharegpt4v_instruct_gpt4-vision_cap100k_coco.json', 'w', encoding='utf-8') as f:
+21 + with open("sharegpt4v_instruct_gpt4-vision_cap100k_coco.json", "w", encoding="utf-8") as f:
+22 |     json.dump(filtered_data, f, ensure_ascii=False, indent=4)
+   |
+
+unformatted: File would be reformatted
+   --> docs/hardware_support/precision_analysis.md:56:1
+    |
+55  | from msprobe.pytorch import seed_all
+56  +
+57  | seed_all(mode=True)
+--------------------------------------------------------------------------------
+65  |
+66  +
+67  | def seed_all(seed=42, mode=True, is_gpu=False):
+--------------------------------------------------------------------------------
+71  |     import torch
+72  +
+73  |     random.seed(seed)
+    -     os.environ['PYTHONHASHSEED'] = str(seed)
+74  +     os.environ["PYTHONHASHSEED"] = str(seed)
+75  |     np.random.seed(seed)
+--------------------------------------------------------------------------------
+85  |         import torch_npu
+86  +
+87  |         torch_npu.npu.manual_seed_all(seed)
+88  |         torch_npu.npu.manual_seed(seed)
+89  |
+90  +
+91  | if __name__ == "__main__":
+92  |     import os
+    -     seed_all(mode=os.environ.get('DETERM_COMP', "true") == "true")
+93  +
+94  +     seed_all(mode=os.environ.get("DETERM_COMP", "true") == "true")
+95  |     main()
+--------------------------------------------------------------------------------
+177 | from mindstudio_probe import Debugger
+178 +
+179 | debugger = Debugger(config_path="path/to/config.json")
+    |
+
+unformatted: File would be reformatted
+  --> docs/hardware_support/typical_usage.md:30:1
+   |
+29 | import json
+   - with open('sharegpt4v_instruct_gpt4-vision_cap100k.json', 'r', encoding='utf-8') as f:
+30 +
+31 + with open("sharegpt4v_instruct_gpt4-vision_cap100k.json", "r", encoding="utf-8") as f:
+32 |     data = json.load(f)
+33 | filtered_data = []
+34 | for item in data:
+   -     if item.get('image', '').startswith('coco'):
+35 +     if item.get("image", "").startswith("coco"):
+36 |         new_item = item.copy()
+   -         image_path = new_item.pop('image')
+37 +         image_path = new_item.pop("image")
+38 |         # Update the image path to point to your downloaded COCO dataset
+   -         new_item['images'] = [f'./train2017/{image_path.split("/")[-1]}']
+39 +         new_item["images"] = [f"./train2017/{image_path.split('/')[-1]}"]
+40 |         filtered_data.append(new_item)
+   - with open('sharegpt4v_instruct_gpt4-vision_cap100k_coco.json', 'w', encoding='utf-8') as f:
+41 + with open("sharegpt4v_instruct_gpt4-vision_cap100k_coco.json", "w", encoding="utf-8") as f:
+42 |     json.dump(filtered_data, f, ensure_ascii=False, indent=4)
+   |
+
+unformatted: File would be reformatted
+  --> docs/key_features/ep_fsdp2.md:88:41
+   |
+87 |     if layers.mlp.experts:
+   -         fully_shard(layers.mlp.experts) # along dim-1 by placement_fn
+88 +         fully_shard(layers.mlp.experts)  # along dim-1 by placement_fn
+89 |     fully_shard(layer)
+   |
+
+unformatted: File would be reformatted
+  --> docs/key_features/extra_parallel.md:50:26
+   |
+49 | }
+   - extra_parallel_1_plan = {
+   -     ...
+   - }
+   - extra_parallel_2_plan = {
+   -     ...
+   - }
+50 + extra_parallel_1_plan = {...}
+51 + extra_parallel_2_plan = {...}
+52 | parallel_plan = ParallelPlan(
+   |
+
+unformatted: File would be reformatted
+  --> docs/key_features/model_loader.md:67:1
+   |
+66 |
+67 +
+68 | class YourCustomConfig(PretrainedConfig):
+69 |     model_type = "your_custom_model"
+70 |     architectures = ["YourCustomModel"]
+71 |
+72 +
+73 | class YourCustomModel(PreTrainedModel):
+--------------------------------------------------------------------------------
+79 |
+   -     def forward(self, input_ids, **kwargs):
+   -         ...
+80 +     def forward(self, input_ids, **kwargs): ...
+81 +
+82 |
+   |
+
+unformatted: File would be reformatted
+   --> docs/key_features/preprocessor_registry.md:27:1
+    |
+26  | ```python
+    -
+27  | @PREPROCESSOR_REGISTRY.register("my_custom_source")
+--------------------------------------------------------------------------------
+109 | # Input: Your data source's raw format (flexible)
+    - conversations = [
+    -     {"from": "human", "value": "<image> What is this?"},
+    -     {"from": "gpt", "value": "A cat."}
+    - ]
+110 + conversations = [{"from": "human", "value": "<image> What is this?"}, {"from": "gpt", "value": "A cat."}]
+111 |
+112 | # Output: VeOmni's standardized format (strict)
+    - constructed_conversation = [
+    -     ["user", ("image", None), ("text", "What is this?")],
+    -     ["assistant", ("text", "A cat.")]
+    - ]
+113 + constructed_conversation = [["user", ("image", None), ("text", "What is this?")], ["assistant", ("text", "A cat.")]]
+114 | ```
+--------------------------------------------------------------------------------
+148 |     if mode == "caption":
+    -         return [
+    -             ["user", ("image", None), ("text", "Describe this image.")],
+    -             ["assistant", ("text", conversations)]
+    -         ]
+149 +         return [["user", ("image", None), ("text", "Describe this image.")], ["assistant", ("text", conversations)]]
+150 |     elif mode == "generation":
+    -         return [
+    -             ["user", ("text", conversations)],
+    -             ["assistant", ("image", None)]
+    -         ]
+151 +         return [["user", ("text", conversations)], ["assistant", ("image", None)]]
+152 | ```
+--------------------------------------------------------------------------------
+169 |
+170 +
+171 | @PREPROCESSOR_REGISTRY.register("random_prompt_source")
+172 | def random_prompt_preprocessor(conversations, **kwargs):
+173 |     """Preprocessor with randomized prompts"""
+    -     prompts = [
+    -         "Describe this image in detail.",
+    -         "What do you see in this image?",
+    -         "Please analyze this image."
+    -     ]
+174 +     prompts = ["Describe this image in detail.", "What do you see in this image?", "Please analyze this image."]
+175 |     prompt = random.choice(prompts)
+176 |
+    -     return [
+    -         ["user", ("image", None), ("text", prompt)],
+    -         ["assistant", ("text", conversations)]
+    -     ]
+177 +     return [["user", ("image", None), ("text", prompt)], ["assistant", ("text", conversations)]]
+178 | ```
+--------------------------------------------------------------------------------
+187 |         # Simple caption format
+    -         return [
+    -             ["user", ("image", None)],
+    -             ["assistant", ("text", conversations)]
+    -         ]
+188 +         return [["user", ("image", None)], ["assistant", ("text", conversations)]]
+189 |     elif isinstance(conversations, dict):
+190 |         # Structured format
+191 |         return [
+192 |             ["user", ("image", None), ("text", conversations["question"])],
+    -             ["assistant", ("text", conversations["answer"])]
+193 +             ["assistant", ("text", conversations["answer"])],
+194 |         ]
+--------------------------------------------------------------------------------
+217 | from veomni.data.multimodal import (
+    -     PREPROCESSOR_REGISTRY,          # Preprocessor registry
+    -     conv_preprocess,                # Preprocess function
+218 +     PREPROCESSOR_REGISTRY,  # Preprocessor registry
+219 +     conv_preprocess,  # Preprocess function
+220 | )
+--------------------------------------------------------------------------------
+253 |     # Test your preprocessor
+    -     test_conversations = [
+    -         {"from": "human", "value": "<image> What is this?"},
+    -         {"from": "gpt", "value": "A cat."}
+    -     ]
+254 +     test_conversations = [{"from": "human", "value": "<image> What is this?"}, {"from": "gpt", "value": "A cat."}]
+255 |     # Assuming my_custom_source_preprocessor is defined as in the Quick Start
+256 |     result = conv_preprocess("my_custom_source", test_conversations)
+257 |
+    -     assert result == [
+    -         ["user", ("image", None), ("text", "What is this?")],
+    -         ["assistant", ("text", "A cat.")]
+    -     ]
+258 +     assert result == [["user", ("image", None), ("text", "What is this?")], ["assistant", ("text", "A cat.")]]
+259 | ```
+    |
+
+unformatted: File would be reformatted
+   --> docs/key_features/ulysses.md:148:17
+    |
+147 | # Step3 (part1): modify attention computation
+    - x = self.qkv(x) # [batch_size, seq_pad/n, dim]
+    - x = gather_seq_scatter_heads(x, seq_dim=1, head_dim=2) # [batch_size, seq_len, dim/n]
+148 + x = self.qkv(x)  # [batch_size, seq_pad/n, dim]
+149 + x = gather_seq_scatter_heads(x, seq_dim=1, head_dim=2)  # [batch_size, seq_len, dim/n]
+150 | ...
+151 | output = F.scaled_dot_product_attention(q, k, v, ...).reshape(...)
+152 | ...
+    - output = gather_heads_scatter_seq(output, head_dim=2, seq_dim=1) # [batch_size, seq_pad/n, dim]
+153 + output = gather_heads_scatter_seq(output, head_dim=2, seq_dim=1)  # [batch_size, seq_pad/n, dim]
+154 |
+    |
+
+unformatted: File would be reformatted
+   --> docs/transformers_v5/testing_new_model.md:44:1
+    |
+43  | ```python
+    - pytest.param(
+    -     "./tests/toy_config/<new_model>_toy/config.json",
+    -     False,  # is_moe — set True for MoE models
+    -     _DEFAULT_RTOL,
+    -     _DEFAULT_ATOL,
+    -     id="<new_model>",
+    - ),
+44  + (
+45  +     pytest.param(
+46  +         "./tests/toy_config/<new_model>_toy/config.json",
+47  +         False,  # is_moe — set True for MoE models
+48  +         _DEFAULT_RTOL,
+49  +         _DEFAULT_ATOL,
+50  +         id="<new_model>",
+51  +     ),
+52  + )
+53  | ```
+--------------------------------------------------------------------------------
+101 | ```python
+    - pytest.param(
+    -     "<new_model>",
+    -     "./tests/toy_config/<new_model>_toy/config.json",
+    -     False,  # is_moe
+    -     _DEFAULT_RTOL,
+    -     _DEFAULT_ATOL,
+    -     None,  # max_sp_size
+    - ),
+102 + (
+103 +     pytest.param(
+104 +         "<new_model>",
+105 +         "./tests/toy_config/<new_model>_toy/config.json",
+106 +         False,  # is_moe
+107 +         _DEFAULT_RTOL,
+108 +         _DEFAULT_ATOL,
+109 +         None,  # max_sp_size
+110 +     ),
+111 + )
+112 | ```
+--------------------------------------------------------------------------------
+135 | ```python
+    - pytest.param(
+    -     "qwen3_5",
+    -     "./tests/toy_config/qwen3_5_toy/config.json",
+    -     False,  # is_moe
+    -     _DEFAULT_RTOL,
+    -     _DEFAULT_ATOL,
+    -     1,  # max_sp_size — remove once SP is supported
+    - ),
+136 + (
+137 +     pytest.param(
+138 +         "qwen3_5",
+139 +         "./tests/toy_config/qwen3_5_toy/config.json",
+140 +         False,  # is_moe
+141 +         _DEFAULT_RTOL,
+142 +         _DEFAULT_ATOL,
+143 +         1,  # max_sp_size — remove once SP is supported
+144 +     ),
+145 + )
+146 | ```
+--------------------------------------------------------------------------------
+171 | ```python
+    - pytest.param("./tests/toy_config/<new_vlm_model>_toy/config.json", id="<new_vlm_model>"),
+172 + (pytest.param("./tests/toy_config/<new_vlm_model>_toy/config.json", id="<new_vlm_model>"),)
+173 | ```
+    |
+
+unformatted: File would be reformatted
+  --> docs/transformers_v5/veomni_fused_attention.md:93:20
+   |
+92 | MagiAttentionMask(
+   -     q_ranges=...,       # int32 [num_ranges, 2]
+   -     k_ranges=...,       # int32 [num_ranges, 2]
+93 +     q_ranges=...,  # int32 [num_ranges, 2]
+94 +     k_ranges=...,  # int32 [num_ranges, 2]
+95 |     attn_type_map=...,  # optional int32 [num_ranges]
+   |
+
+unformatted: File would be reformatted
+   --> docs/usage/basic_modules.md:38:1
+    |
+37  |
+38  +
+39  | @dataclass
+--------------------------------------------------------------------------------
+44  |
+45  +
+46  | if __name__ == "__main__":
+--------------------------------------------------------------------------------
+60  |
+61  +
+62  | @dataclass
+--------------------------------------------------------------------------------
+88  | init_parallel_state(
+    -     dp_size=args.train.accelerator.dp_size, # data parallel size
+    -     dp_replicate_size=args.train.accelerator.dp_replicate_size, # data parallel replicate size
+    -     dp_shard_size=args.train.accelerator.dp_shard_size, # data parallel shard degree
+    -     tp_size=args.train.accelerator.tp_size, # tensor parallel size
+    -     pp_size=args.train.accelerator.pp_size, # pipeline parallel size, not support now
+    -     cp_size=args.train.accelerator.cp_size, # context parallel size, not support now
+    -     ulysses_size=args.train.accelerator.ulysses_size, # ulysses parallel size
+    -     extra_parallel_sizes=args.train.accelerator.extra_parallel_sizes, # including expert parallel size
+89  +     dp_size=args.train.accelerator.dp_size,  # data parallel size
+90  +     dp_replicate_size=args.train.accelerator.dp_replicate_size,  # data parallel replicate size
+91  +     dp_shard_size=args.train.accelerator.dp_shard_size,  # data parallel shard degree
+92  +     tp_size=args.train.accelerator.tp_size,  # tensor parallel size
+93  +     pp_size=args.train.accelerator.pp_size,  # pipeline parallel size, not support now
+94  +     cp_size=args.train.accelerator.cp_size,  # context parallel size, not support now
+95  +     ulysses_size=args.train.accelerator.ulysses_size,  # ulysses parallel size
+96  +     extra_parallel_sizes=args.train.accelerator.extra_parallel_sizes,  # including expert parallel size
+97  |     extra_parallel_placement_innermost=args.train.accelerator.extra_parallel_placement_innermost,
+98  |     extra_parallel_names=args.train.accelerator.extra_parallel_names,
+    -     dp_mode=args.train.accelerator.fsdp_config.fsdp_mode, # data parallel mode, can be "ddp" or "fsdp2"
+    -     async_enabled=args.train.accelerator.enable_async, # async ulysses
+99  +     dp_mode=args.train.accelerator.fsdp_config.fsdp_mode,  # data parallel mode, can be "ddp" or "fsdp2"
+100 +     async_enabled=args.train.accelerator.enable_async,  # async ulysses
+101 |     name="base",
+--------------------------------------------------------------------------------
+133 | from veomni.data import build_dataset
+134 +
+135 | train_dataset = build_dataset(
+    -     dataset_name=args.data.dataset_name,
+    -     transform=transform,
+    -     seed=args.train.seed,
+    -     **asdict(args.data)
+136 +     dataset_name=args.data.dataset_name, transform=transform, seed=args.train.seed, **asdict(args.data)
+137 | )
+--------------------------------------------------------------------------------
+195 |     **kwargs,
+    - )-> Dataset:
+196 + ) -> Dataset:
+197 |     # Implement your custom dataset logic
+--------------------------------------------------------------------------------
+280 |
+281 +
+282 | class CustomTemplate(ChatTemplate):
+--------------------------------------------------------------------------------
+300 | from veomni.data import build_dataloader
+301 +
+302 | train_dataloader = build_dataloader(
+303 |     dataloader_type=args.data.dataloader.type,
+304 |     dataset=train_dataset,
+    -     micro_batch_size=args.train.micro_batch_size, # micro batch size
+    -     global_batch_size=args.train.global_batch_size, # global batch size
+    -     dataloader_batch_size=args.train.dataloader_batch_size, # dataloader batch size, how many micro batches to get with next(train_dataloader), automatically calculate
+    -     max_seq_len=args.data.max_seq_len, # max sequence length
+    -     train_steps=args.train_steps, # calculated by args.compute_train_steps
+    -     dyn_bsz=args.train.dyn_bsz, # enable dynamic batching
+    -     bsz_warmup_ratio=args.train.bsz_warmup_ratio, # bsz warmup ratio
+    -     bsz_warmup_init_mbtoken=args.train.bsz_warmup_init_mbtoken, # bsz warmup init micro batch token
+    -     dyn_bsz_buffer_size=args.data.dyn_bsz_buffer_size, # dynamic batching buffer size
+    -     num_workers=args.data.dataloader.num_workers, # dataloader num workers
+305 +     micro_batch_size=args.train.micro_batch_size,  # micro batch size
+306 +     global_batch_size=args.train.global_batch_size,  # global batch size
+307 +     dataloader_batch_size=args.train.dataloader_batch_size,  # dataloader batch size, how many micro batches to get with next(train_dataloader), automatically calculate
+308 +     max_seq_len=args.data.max_seq_len,  # max sequence length
+309 +     train_steps=args.train_steps,  # calculated by args.compute_train_steps
+310 +     dyn_bsz=args.train.dyn_bsz,  # enable dynamic batching
+311 +     bsz_warmup_ratio=args.train.bsz_warmup_ratio,  # bsz warmup ratio
+312 +     bsz_warmup_init_mbtoken=args.train.bsz_warmup_init_mbtoken,  # bsz warmup init micro batch token
+313 +     dyn_bsz_buffer_size=args.data.dyn_bsz_buffer_size,  # dynamic batching buffer size
+314 +     num_workers=args.data.dataloader.num_workers,  # dataloader num workers
+315 |     drop_last=args.data.dataloader.drop_last,  # dataloader drop last
+316 |     pin_memory=args.data.dataloader.pin_memory,  # dataloader pin memory
+    -     prefetch_factor=args.data.dataloader.prefetch_factor, # dataloader prefetch factor
+    -     seed=args.train.seed, # random seed
+317 +     prefetch_factor=args.data.dataloader.prefetch_factor,  # dataloader prefetch factor
+318 +     seed=args.train.seed,  # random seed
+319 |     build_collate_fn=True,
+    -     collate_fn_kwargs=collate_fn_kwargs, # kwargs for collate_fn
+320 +     collate_fn_kwargs=collate_fn_kwargs,  # kwargs for collate_fn
+321 | )
+--------------------------------------------------------------------------------
+358 | model = build_foundation_model(
+    -     config_path=args.model.config_path, # model config path, can be None if weights_path is not None
+    -     weights_path=args.model.model_path, # model weights path, can be None if config_path is not None
+    -     init_device=args.train.init_device, # model init device
+359 +     config_path=args.model.config_path,  # model config path, can be None if weights_path is not None
+360 +     weights_path=args.model.model_path,  # model weights path, can be None if config_path is not None
+361 +     init_device=args.train.init_device,  # model init device
+362 |     torch_dtype="float32" if args.train.accelerator.fsdp_config.mixed_precision.enable else "bfloat16",
+--------------------------------------------------------------------------------
+373 | from veomni.distributed.torch_parallelize import build_parallelize_model
+374 +
+375 | model = build_parallelize_model(
+376 |     model,
+    -     init_device=args.train.init_device, # model init device
+377 +     init_device=args.train.init_device,  # model init device
+378 |     weights_path=args.model.model_path,
+    -     enable_reshard_after_forward=args.train.accelerator.fsdp_config.reshard_after_forward, # enable reshard after forward for FSDP2
+    -     mixed_precision=args.train.accelerator.fsdp_config.mixed_precision, # enable mixed precision
+    -     enable_gradient_checkpointing=args.train.gradient_checkpointing.enable, # enable gradient checkpointing
+    -     enable_fsdp_offload=args.train.accelerator.fsdp_config.offload, # enable fsdp offload
+    -     basic_modules=list(set(getattr(model, "_no_split_modules", None) or []) | set(args.model.basic_modules)), # FSDP basic modules
+379 +     enable_reshard_after_forward=args.train.accelerator.fsdp_config.reshard_after_forward,  # enable reshard after forward for FSDP2
+380 +     mixed_precision=args.train.accelerator.fsdp_config.mixed_precision,  # enable mixed precision
+381 +     enable_gradient_checkpointing=args.train.gradient_checkpointing.enable,  # enable gradient checkpointing
+382 +     enable_fsdp_offload=args.train.accelerator.fsdp_config.offload,  # enable fsdp offload
+383 +     basic_modules=list(
+384 +         set(getattr(model, "_no_split_modules", None) or []) | set(args.model.basic_modules)
+385 +     ),  # FSDP basic modules
+386 |     enable_reentrant=args.train.gradient_checkpointing.enable_reentrant,
+387 |     early_stop=args.train.gradient_checkpointing.early_stop,
+388 |     enable_forward_prefetch=args.train.accelerator.fsdp_config.forward_prefetch,
+    -     broadcast_model_weights_from_rank0=args.train.broadcast_model_weights_from_rank0, # load model weights
+389 +     broadcast_model_weights_from_rank0=args.train.broadcast_model_weights_from_rank0,  # load model weights
+390 |     ep_sharded_stream_load=args.train.ep_sharded_stream_load,
+    -     max_load_broadcast_size=args.train.accelerator.fsdp_config.max_load_broadcast_size, # max load broadcast size
+391 +     max_load_broadcast_size=args.train.accelerator.fsdp_config.max_load_broadcast_size,  # max load broadcast size
+392 | )
+--------------------------------------------------------------------------------
+541 |
+542 +
+543 | def loss_func(logits, labels):
+544 |     return loss_fct(logits, labels)
+545 |
+546 +
+547 | # In train loop:
+    |
+
+unformatted: File would be reformatted
+   --> docs/usage/support_new_models/dit_model_guide.md:98:45
+    |
+97  | def save_pretrained(self, path, **kwargs):
+    -     hf_config = copy.deepcopy(self.config)      # 1. stash VeOmni config
+    -     self.config = self.config.to_diffuser_dict() # 2. swap in pure diffusers dict
+98  +     hf_config = copy.deepcopy(self.config)  # 1. stash VeOmni config
+99  +     self.config = self.config.to_diffuser_dict()  # 2. swap in pure diffusers dict
+100 |     _WanTransformer3DModel.save_pretrained(self, path, **kwargs)  # 3. delegate
+    -     self.config = hf_config                      # 4. restore VeOmni config
+101 +     self.config = hf_config  # 4. restore VeOmni config
+102 | ```
+--------------------------------------------------------------------------------
+161 |
+162 +
+163 | def to_diffuser_dict(self):
+    -     return {
+    -         key: getattr(self, key)
+    -         for key in WAN_INIT_SIGNATURE.parameters
+    -         if key != "self"
+    -     }
+164 +     return {key: getattr(self, key) for key in WAN_INIT_SIGNATURE.parameters if key != "self"}
+165 | ```
+--------------------------------------------------------------------------------
+172 |     d = super().to_dict()
+    -     d["_class_name"] = "WanTransformer3DModel"   # diffusers loader key
+173 +     d["_class_name"] = "WanTransformer3DModel"  # diffusers loader key
+174 |     d["_diffusers_version"] = diffusers.__version__
+    -     del d["dtype"]   # transformers adds this; diffusers configs don't have it
+175 +     del d["dtype"]  # transformers adds this; diffusers configs don't have it
+176 |     return d
+--------------------------------------------------------------------------------
+243 |
+244 +
+245 | class YourConditionModelConfig(PretrainedConfig):
+--------------------------------------------------------------------------------
+292 |     # videos: list[list[Tensor]]  — raw video frames, one list per sample
+    -     prompt_embeds = self._encode_text(inputs)        # list of (1, seq, dim)
+293 +     prompt_embeds = self._encode_text(inputs)  # list of (1, seq, dim)
+294 |     latents_list = [self._encode_video(v) for v in videos]  # list of (1, C, F, H, W)
+--------------------------------------------------------------------------------
+333 |
+334 +
+335 | @MODEL_CONFIG_REGISTRY.register("YourConditionModel")
+336 | def register_config():
+337 |     from .configuration_your_condition import YourConditionModelConfig
+338 +
+339 |     return YourConditionModelConfig
+340 |
+341 +
+342 | @MODELING_REGISTRY.register("YourConditionModel")
+343 | def register_modeling(architecture: str = None):
+344 |     from .modeling_your_condition import YourConditionModel
+345 +
+346 |     return YourConditionModel
+--------------------------------------------------------------------------------
+368 |
+369 +
+370 | class YourTransformerConfig(PretrainedConfig):
+    -     model_type = "YourTransformerModel"             # registry key for this model
+    -     condition_model_type = "YourConditionModel"     # registry key for companion
+371 +     model_type = "YourTransformerModel"  # registry key for this model
+372 +     condition_model_type = "YourConditionModel"  # registry key for companion
+373 |
+--------------------------------------------------------------------------------
+381 |         """Return only the kwargs accepted by the diffusers model __init__."""
+    -         return {
+    -             key: getattr(self, key)
+    -             for key in _DIFFUSERS_INIT_SIGNATURE.parameters
+    -             if key != "self"
+    -         }
+382 +         return {key: getattr(self, key) for key in _DIFFUSERS_INIT_SIGNATURE.parameters if key != "self"}
+383 |
+--------------------------------------------------------------------------------
+404 |
+405 +
+406 | class YourTransformerModel(PreTrainedModel, _YourDiffusersModel):
+--------------------------------------------------------------------------------
+458 |
+459 +
+460 | def forward(self, hidden_states, timestep, encoder_hidden_states, training_target, **kwargs):
+461 |     per_sample_losses = []
+462 |     predictions = []
+463 |     for hs, ts, enc_hs, target in zip(hidden_states, timestep, encoder_hidden_states, training_target):
+    -         prediction = _YourDiffusersModel.forward(
+    -             self, hidden_states=hs, timestep=ts, encoder_hidden_states=enc_hs
+    -         )
+464 +         prediction = _YourDiffusersModel.forward(self, hidden_states=hs, timestep=ts, encoder_hidden_states=enc_hs)
+465 |         predictions.append(prediction)
+--------------------------------------------------------------------------------
+578 |
+579 +
+580 |    class YourSPAttnProcessor:
+--------------------------------------------------------------------------------
+636 |
+637 +
+638 | @MODEL_CONFIG_REGISTRY.register("YourTransformerModel")
+639 | def register_config():
+640 |     from .configuration_your_transformer import YourTransformerConfig
+641 +
+642 |     return YourTransformerConfig
+643 |
+644 +
+645 | @MODELING_REGISTRY.register("YourTransformerModel")
+646 | def register_modeling(architecture: str):
+647 |     from .modeling_your_transformer import YourTransformerModel, apply_veomni_sp_patch
+    -     apply_veomni_sp_patch()   # patch base diffusers class at load time
+648 +
+649 +     apply_veomni_sp_patch()  # patch base diffusers class at load time
+650 |     return YourTransformerModel
+    |
+
+unformatted: File would be reformatted
+   --> docs/usage/support_new_models/guide_and_checklist.md:64:1
+    |
+63  |
+64  +
+65  | @MODELING_REGISTRY.register("your_model_type")
+66  | def register_modeling(architecture: str):
+67  |     from transformers.models.your_model import YourModelForCausalLM
+68  +
+69  |     return YourModelForCausalLM
+--------------------------------------------------------------------------------
+75  |
+76  +
+77  | @MODEL_CONFIG_REGISTRY.register("your_model_type")
+78  | def register_config():
+79  |     from .configuration_your_model import YourModelConfig, apply_veomni_patch
+80  +
+81  |     apply_veomni_patch()
+82  |     return YourModelConfig
+83  |
+84  +
+85  | @MODELING_REGISTRY.register("your_model_type")
+86  | def register_modeling(architecture: str):
+87  |     from .modeling_your_model import YourModelForCausalLM, apply_veomni_patch
+88  +
+89  |     apply_veomni_patch()
+90  |     return YourModelForCausalLM
+91  |
+92  +
+93  | @MODEL_PROCESSOR_REGISTRY.register("YourModelProcessor")  # exact class name from processor_config.json
+94  | def register_processor():
+95  |     from .processing_your_model import YourModelProcessor, apply_veomni_patch
+96  +
+97  |     apply_veomni_patch()
+--------------------------------------------------------------------------------
+124 |
+125 +
+126 | def apply_veomni_patch():
+--------------------------------------------------------------------------------
+137 |
+138 +
+139 | def get_parallel_plan():
+140 |     ep_plan = {
+141 |         "model.layers.*.mlp.experts.gate_proj": Shard(0),
+    -         "model.layers.*.mlp.experts.up_proj":   Shard(0),
+142 +         "model.layers.*.mlp.experts.up_proj": Shard(0),
+143 |         "model.layers.*.mlp.experts.down_proj": Shard(0),
+--------------------------------------------------------------------------------
+258 | from veomni.distributed.sequence_parallel import (
+    -     gather_heads_scatter_seq,   # (bs, seq, h//sp) → (bs, seq//sp, h)
+    -     gather_outputs,             # all-gather along a dim (no autograd)
+    -     gather_seq_scatter_heads,   # (bs, seq//sp, h) → (bs, seq, h//sp)
+    -     slice_input_tensor,         # slice along a dim for this SP rank
+    -     sp_pad_and_slice,           # pad to multiple of pad_scale, then slice
+    -     unpad_tensor,               # remove padding from a tensor
+259 +     gather_heads_scatter_seq,  # (bs, seq, h//sp) → (bs, seq//sp, h)
+260 +     gather_outputs,  # all-gather along a dim (no autograd)
+261 +     gather_seq_scatter_heads,  # (bs, seq//sp, h) → (bs, seq, h//sp)
+262 +     slice_input_tensor,  # slice along a dim for this SP rank
+263 +     sp_pad_and_slice,  # pad to multiple of pad_scale, then slice
+264 +     unpad_tensor,  # remove padding from a tensor
+265 | )
+--------------------------------------------------------------------------------
+271 | from veomni.utils.constants import (
+    -     AUDIO_INPUT_INDEX,   # placeholder token ID for audio in input_ids
+    -     IGNORE_INDEX,        # -100, label mask value
+    -     IMAGE_INPUT_INDEX,   # placeholder token ID for images in input_ids
+    -     VIDEO_INPUT_INDEX,   # placeholder token ID for videos in input_ids
+272 +     AUDIO_INPUT_INDEX,  # placeholder token ID for audio in input_ids
+273 +     IGNORE_INDEX,  # -100, label mask value
+274 +     IMAGE_INPUT_INDEX,  # placeholder token ID for images in input_ids
+275 +     VIDEO_INPUT_INDEX,  # placeholder token ID for videos in input_ids
+276 | )
+    |
+
+unformatted: File would be reformatted
+   --> docs/usage/support_new_models/guide_and_checklist_zh.md:66:1
+    |
+65  |
+66  +
+67  | @MODELING_REGISTRY.register("your_model_type")
+68  | def register_modeling(architecture: str):
+69  |     from transformers.models.your_model import YourModelForCausalLM
+70  +
+71  |     return YourModelForCausalLM
+--------------------------------------------------------------------------------
+78  |
+79  +
+80  | @MODEL_CONFIG_REGISTRY.register("your_model_type")
+81  | def register_config():
+82  |     from .configuration_your_model import YourModelConfig, apply_veomni_patch
+83  +
+84  |     apply_veomni_patch()
+85  |     return YourModelConfig
+86  |
+87  +
+88  | @MODELING_REGISTRY.register("your_model_type")
+89  | def register_modeling(architecture: str):
+90  |     from .modeling_your_model import YourModelForCausalLM, apply_veomni_patch
+91  +
+92  |     apply_veomni_patch()
+93  |     return YourModelForCausalLM
+94  |
+95  +
+96  | @MODEL_PROCESSOR_REGISTRY.register("YourModelProcessor")  # processor_config.json 中的准确类名
+97  | def register_processor():
+98  |     from .processing_your_model import YourModelProcessor, apply_veomni_patch
+99  +
+100 |     apply_veomni_patch()
+--------------------------------------------------------------------------------
+131 |
+132 +
+133 | def apply_veomni_patch():
+--------------------------------------------------------------------------------
+144 |
+145 +
+146 | def get_parallel_plan():
+147 |     ep_plan = {
+148 |         "model.layers.*.mlp.experts.gate_proj": Shard(0),
+    -         "model.layers.*.mlp.experts.up_proj":   Shard(0),
+149 +         "model.layers.*.mlp.experts.up_proj": Shard(0),
+150 |         "model.layers.*.mlp.experts.down_proj": Shard(0),
+--------------------------------------------------------------------------------
+282 | from veomni.distributed.sequence_parallel import (
+    -     gather_heads_scatter_seq,   # (bs, seq, h//sp) → (bs, seq//sp, h)
+    -     gather_outputs,             # 沿指定维度 all-gather，不带 autograd
+    -     gather_seq_scatter_heads,   # (bs, seq//sp, h) → (bs, seq, h//sp)
+    -     slice_input_tensor,         # 沿指定维度为当前 SP rank 切片
+    -     sp_pad_and_slice,           # pad 至 pad_scale 的倍数后切片
+    -     unpad_tensor,               # 移除 tensor padding
+283 +     gather_heads_scatter_seq,  # (bs, seq, h//sp) → (bs, seq//sp, h)
+284 +     gather_outputs,  # 沿指定维度 all-gather，不带 autograd
+285 +     gather_seq_scatter_heads,  # (bs, seq//sp, h) → (bs, seq, h//sp)
+286 +     slice_input_tensor,  # 沿指定维度为当前 SP rank 切片
+287 +     sp_pad_and_slice,  # pad 至 pad_scale 的倍数后切片
+288 +     unpad_tensor,  # 移除 tensor padding
+289 | )
+--------------------------------------------------------------------------------
+295 | from veomni.utils.constants import (
+    -     AUDIO_INPUT_INDEX,   # input_ids 中音频的 placeholder token ID
+    -     IGNORE_INDEX,        # -100，label mask value
+    -     IMAGE_INPUT_INDEX,   # input_ids 中图像的 placeholder token ID
+    -     VIDEO_INPUT_INDEX,   # input_ids 中视频的 placeholder token ID
+296 +     AUDIO_INPUT_INDEX,  # input_ids 中音频的 placeholder token ID
+297 +     IGNORE_INDEX,  # -100，label mask value
+298 +     IMAGE_INPUT_INDEX,  # input_ids 中图像的 placeholder token ID
+299 +     VIDEO_INPUT_INDEX,  # input_ids 中视频的 placeholder token ID
+300 | )
+    |
+
+unformatted: File would be reformatted
+   --> docs/usage/support_new_models/qwen3_omni_moe_example.md:30:1
+    |
+29  |
+30  +
+31  | def apply_veomni_patch():
+--------------------------------------------------------------------------------
+143 | if sp_enabled:
+    -     inputs_embeds = gather_outputs(
+    -         inputs_embeds, gather_dim=1, group=sp_group
+    -     )
+144 +     inputs_embeds = gather_outputs(inputs_embeds, gather_dim=1, group=sp_group)
+145 |
+--------------------------------------------------------------------------------
+150 |         # (seq//sp, hidden) → (seq, hidden//sp)
+    -         image_embeds = gather_outputs(
+    -             image_embeds, gather_dim=0, group=sp_group
+    -         )
+151 +         image_embeds = gather_outputs(image_embeds, gather_dim=0, group=sp_group)
+152 |     inputs_embeds = inputs_embeds.masked_scatter(image_mask, image_embeds)
+--------------------------------------------------------------------------------
+157 | if sp_enabled:
+    -     inputs_embeds = slice_input_tensor(
+    -         inputs_embeds, dim=1, group=sp_group
+    -     )
+158 +     inputs_embeds = slice_input_tensor(inputs_embeds, dim=1, group=sp_group)
+159 | ```
+--------------------------------------------------------------------------------
+180 |     # All-gather: (seq//sp, hidden) → (seq, hidden)
+    -     deepstack_embeds = [
+    -         _Gather.apply(sp_group, embed, 0, False) for embed in deepstack_embeds
+    -     ]
+181 +     deepstack_embeds = [_Gather.apply(sp_group, embed, 0, False) for embed in deepstack_embeds]
+182 |
+    -     image_mask_1d = image_mask[..., 0]     # (bs, seq)
+183 +     image_mask_1d = image_mask[..., 0]  # (bs, seq)
+184 |     seq_per_rank = seq_len // sp_size
+    -     rank_start   = sp_rank * seq_per_rank
+    -     rank_mask    = image_mask_1d[:, rank_start : rank_start + seq_per_rank]
+    -     offset       = image_mask_1d[:, :rank_start].sum().item()
+    -     n_tokens     = rank_mask.sum().item()
+185 +     rank_start = sp_rank * seq_per_rank
+186 +     rank_mask = image_mask_1d[:, rank_start : rank_start + seq_per_rank]
+187 +     offset = image_mask_1d[:, :rank_start].sum().item()
+188 +     n_tokens = rank_mask.sum().item()
+189 |
+--------------------------------------------------------------------------------
+207 |         self.gate_proj = nn.Parameter(torch.empty(num_experts, intermediate_size, hidden_size))
+    -         self.up_proj   = nn.Parameter(torch.empty(num_experts, intermediate_size, hidden_size))
+208 +         self.up_proj = nn.Parameter(torch.empty(num_experts, intermediate_size, hidden_size))
+209 |         self.down_proj = nn.Parameter(torch.empty(num_experts, hidden_size, intermediate_size))
+--------------------------------------------------------------------------------
+246 |         nn.init.normal_(module.gate_proj, std=self.config.initializer_range)
+    -         nn.init.normal_(module.up_proj,   std=self.config.initializer_range)
+247 +         nn.init.normal_(module.up_proj, std=self.config.initializer_range)
+248 |         nn.init.normal_(module.down_proj, std=self.config.initializer_range)
+--------------------------------------------------------------------------------
+280 | for blk in self.blocks:
+    -     hidden_states = blk(hidden_states, cu_seqlens=cu_seqlens,
+    -                         position_embeddings=position_embeddings, max_seqlen=max_seqlen)
+281 +     hidden_states = blk(
+282 +         hidden_states, cu_seqlens=cu_seqlens, position_embeddings=position_embeddings, max_seqlen=max_seqlen
+283 +     )
+284 | ```
+--------------------------------------------------------------------------------
+328 |
+329 +
+330 | def get_position_id(main_func, self, **kwargs):
+--------------------------------------------------------------------------------
+335 |
+336 +
+337 | class YourModel(hf_your_model.YourModel):
+--------------------------------------------------------------------------------
+345 |             spatial_merge_size=self.spatial_merge_size,
+    -             get_llm_pos_ids_for_vision=partial(
+    -                 hf_your_model.YourClass.get_llm_pos_ids_for_vision, None
+    -             ),
+346 +             get_llm_pos_ids_for_vision=partial(hf_your_model.YourClass.get_llm_pos_ids_for_vision, None),
+347 |         )
+--------------------------------------------------------------------------------
+405 | ```python
+    - pytest.param(
+    -     "./tests/toy_config/your_model_toy",
+    -     is_moe,
+    -     _DEFAULT_RTOL,
+    -     _DEFAULT_ATOL,
+    -     id="your_model_type",   # must match model_type in config.json
+    - ),
+406 + (
+407 +     pytest.param(
+408 +         "./tests/toy_config/your_model_toy",
+409 +         is_moe,
+410 +         _DEFAULT_RTOL,
+411 +         _DEFAULT_ATOL,
+412 +         id="your_model_type",  # must match model_type in config.json
+413 +     ),
+414 + )
+415 | ```
+--------------------------------------------------------------------------------
+452 |
+453 +
+454 | @pytest.fixture(scope="session")
+--------------------------------------------------------------------------------
+460 |
+461 +
+462 | @pytest.mark.parametrize("model_name, config_path, is_moe, rtol, atol", your_model_test_cases)
+    - def test_your_model_parallel_align(
+    -     model_name, config_path, is_moe, rtol, atol, dummy_your_model_dataset
+    - ):
+463 + def test_your_model_parallel_align(model_name, config_path, is_moe, rtol, atol, dummy_your_model_dataset):
+464 |     main(
+    -         task_name="train_vlm_test",   # or "train_text_test" for text-only
+465 +         task_name="train_vlm_test",  # or "train_text_test" for text-only
+466 |         model_name=model_name,
+    |
+
+unformatted: File would be reformatted
+   --> docs/usage/support_new_models/qwen3_vl_example.md:94:11
+    |
+93  | cu_seqlens = torch.repeat_interleave(grid_thw[:, 1] * grid_thw[:, 2], grid_thw[:, 0]).cumsum(
+    -     dim=0, dtype=torch.int32,
+94  +     dim=0,
+95  +     dtype=torch.int32,
+96  | )
+--------------------------------------------------------------------------------
+135 |     # (batch, seq//sp, hidden) → (batch, seq, hidden//sp)
+    -     inputs_embeds = gather_outputs(
+    -         inputs_embeds, gather_dim=1, group=get_parallel_state().sp_group
+    -     )
+136 +     inputs_embeds = gather_outputs(inputs_embeds, gather_dim=1, group=get_parallel_state().sp_group)
+137 | ```
+--------------------------------------------------------------------------------
+142 |     # (seq//sp, hidden) → (seq, hidden//sp)
+    -     image_embeds = gather_outputs(
+    -         image_embeds, gather_dim=0, group=get_parallel_state().sp_group
+    -     )
+143 +     image_embeds = gather_outputs(image_embeds, gather_dim=0, group=get_parallel_state().sp_group)
+144 | ```
+--------------------------------------------------------------------------------
+156 |     # (batch, seq, hidden//sp) → (batch, seq//sp, hidden)
+    -     inputs_embeds = slice_input_tensor(
+    -         inputs_embeds, dim=1, group=get_parallel_state().sp_group
+    -     )
+157 +     inputs_embeds = slice_input_tensor(inputs_embeds, dim=1, group=get_parallel_state().sp_group)
+158 | ```
+--------------------------------------------------------------------------------
+207 |
+208 +
+209 | def get_parallel_plan():
+--------------------------------------------------------------------------------
+225 |     # Split the fused gate_up_proj along the last dim
+    -     gate_proj = self.gate_up_proj[..., : self.expert_dim]   # (num_experts, hidden_size, expert_dim)
+    -     up_proj   = self.gate_up_proj[..., self.expert_dim :]   # (num_experts, hidden_size, expert_dim)
+226 +     gate_proj = self.gate_up_proj[..., : self.expert_dim]  # (num_experts, hidden_size, expert_dim)
+227 +     up_proj = self.gate_up_proj[..., self.expert_dim :]  # (num_experts, hidden_size, expert_dim)
+228 |
+229 |     # Transpose to (num_experts, expert_dim, hidden_size) as expected by fused_moe_forward
+230 |     gate_proj_t = gate_proj.transpose(1, 2).contiguous()
+    -     up_proj_t   = up_proj.transpose(1, 2).contiguous()
+231 +     up_proj_t = up_proj.transpose(1, 2).contiguous()
+232 |     down_proj_t = self.down_proj.transpose(1, 2).contiguous()  # (num_experts, hidden_size, expert_dim)
+--------------------------------------------------------------------------------
+236 |         num_experts=self.num_experts,
+    -         routing_weights=routing_weights,   # compact top-k weights, not the full scatter tensor
+237 +         routing_weights=routing_weights,  # compact top-k weights, not the full scatter tensor
+238 |         selected_experts=router_indices,
+--------------------------------------------------------------------------------
+272 |     else:
+    -         assert not get_parallel_state().ep_enabled or not self.training, \
+273 +         assert not get_parallel_state().ep_enabled or not self.training, (
+274 |             "_moe_implementation='eager' does not support EP"
+275 +         )
+276 |         return super().forward(hidden_states, router_weights, router_indices)
+--------------------------------------------------------------------------------
+329 |
+330 +
+331 | @MODEL_CONFIG_REGISTRY.register("qwen3_vl_moe")
+332 | def register_qwen3_vl_moe_config():
+333 |     from .configuration_qwen3_vl_moe import Qwen3VLMoeConfig
+334 +
+335 |     return Qwen3VLMoeConfig
+336 |
+337 +
+338 | @MODELING_REGISTRY.register("qwen3_vl_moe")
+339 | def register_qwen3_vl_moe_modeling(architecture: str):
+340 |     from .modeling_qwen3_vl_moe import Qwen3VLMoeForCausalLM, apply_veomni_qwen3vlmoe_patch
+341 +
+342 |     apply_veomni_qwen3vlmoe_patch()
+343 |     return Qwen3VLMoeForCausalLM
+344 |
+345 +
+346 | @MODEL_PROCESSOR_REGISTRY.register("Qwen3VLMoeProcessor")
+347 | def register_qwen3_vl_moe_processor():
+348 |     from .processing_qwen3_vl_moe import Qwen3VLMoeProcessor
+349 +
+350 |     return Qwen3VLMoeProcessor
+--------------------------------------------------------------------------------
+361 |
+362 +
+363 | def get_position_id(main_func, self, **kwargs):
+--------------------------------------------------------------------------------
+367 |
+368 +
+369 | class Qwen3VLMoeForConditionalGeneration(_Qwen3VLMoeForConditionalGeneration):
+    |
+
+unformatted: File would be reformatted
+   --> docs/usage/trainer.md:118:1
+    |
+117 |
+118 +
+119 | class MyCustomCallback(Callback):
+--------------------------------------------------------------------------------
+123 |
+124 +
+125 | # In your trainer
+--------------------------------------------------------------------------------
+156 |    def build_data_collate_info(self):
+    -        return {"input_features": (0, True, 0, 1)} # Example for VLM
+157 +        return {"input_features": (0, True, 0, 1)}  # Example for VLM
+158 |    ```
+--------------------------------------------------------------------------------
+173 |            {"params": vit_params, "lr": self.args.train.vit_lr},
+    -            {"params": other_params, "lr": self.args.train.optimizer.lr}
+174 +            {"params": other_params, "lr": self.args.train.optimizer.lr},
+175 |        ]
+--------------------------------------------------------------------------------
+186 |
+187 +
+188 | @dataclass
+    |
+
+unformatted: File would be reformatted
+   --> tests/parallel/ulysses/test_ulysses.py:497:75
+    |
+496 |                     atol=3e-2,
+    -                     msg=lambda message, dtype=dtype, mask_case=mask_case: (f"{dtype=} {mask_case=} output: {message}"),
+497 +                     msg=lambda message, dtype=dtype, mask_case=mask_case: f"{dtype=} {mask_case=} output: {message}",
+498 |                 )
+--------------------------------------------------------------------------------
+503 |                     atol=3e-2,
+    -                     msg=lambda message, dtype=dtype, mask_case=mask_case: (f"{dtype=} {mask_case=} LSE: {message}"),
+504 +                     msg=lambda message, dtype=dtype, mask_case=mask_case: f"{dtype=} {mask_case=} LSE: {message}",
+505 |                 )
+    |
+
+24 files would be reformatted, 758 files already formatted
+make: *** [Makefile:14: quality] Error 1

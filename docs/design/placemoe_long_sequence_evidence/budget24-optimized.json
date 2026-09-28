@@ -1,0 +1,218 @@
+{
+  "config": {
+    "mode": "hierarchical",
+    "tokens": 32768,
+    "hidden": 4096,
+    "intermediate": 1536,
+    "experts": 128,
+    "top_k": 8,
+    "warmup": 1,
+    "iterations": 2,
+    "output": "/experiment/budget24-optimized.json",
+    "save_tensors": null,
+    "memory_fraction": 0.24,
+    "diagnose": false
+  },
+  "ranks": [
+    {
+      "rank": 0,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 229.53203227370977,
+          "backward_ms": 218.40165182948112,
+          "total_ms": 447.9336841031909,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.145337104797363,
+          "peak_gib": 11.14179801940918,
+          "reserved_peak_gib": 12.6875
+        },
+        {
+          "iteration": 2,
+          "forward_ms": 225.78440513461828,
+          "backward_ms": 203.07136420160532,
+          "total_ms": 428.8557693362236,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.145261287689209,
+          "peak_gib": 11.141226768493652,
+          "reserved_peak_gib": 13.6796875
+        }
+      ]
+    },
+    {
+      "rank": 1,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 229.05834205448627,
+          "backward_ms": 218.43268256634474,
+          "total_ms": 447.491024620831,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.166806697845459,
+          "peak_gib": 11.16585397720337,
+          "reserved_peak_gib": 13.216796875
+        },
+        {
+          "iteration": 2,
+          "forward_ms": 225.93146562576294,
+          "backward_ms": 202.79611367732286,
+          "total_ms": 428.7275793030858,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.166353225708008,
+          "peak_gib": 11.16585397720337,
+          "reserved_peak_gib": 11.7109375
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 229.16612215340137,
+          "backward_ms": 218.38352177292109,
+          "total_ms": 447.54964392632246,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.155648231506348,
+          "peak_gib": 11.154362201690674,
+          "reserved_peak_gib": 12.705078125
+        },
+        {
+          "iteration": 2,
+          "forward_ms": 225.82193557173014,
+          "backward_ms": 202.81887333840132,
+          "total_ms": 428.64080891013145,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.155065059661865,
+          "peak_gib": 11.154362201690674,
+          "reserved_peak_gib": 11.697265625
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 229.5923726633191,
+          "backward_ms": 218.5164215043187,
+          "total_ms": 448.1087941676378,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.181452751159668,
+          "peak_gib": 11.18253469467163,
+          "reserved_peak_gib": 13.22265625
+        },
+        {
+          "iteration": 2,
+          "forward_ms": 225.5714451894164,
+          "backward_ms": 203.03761400282383,
+          "total_ms": 428.60905919224024,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.17924165725708,
+          "peak_gib": 11.181753158569336,
+          "reserved_peak_gib": 13.73046875
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 229.3141121044755,
+          "backward_ms": 218.39210204780102,
+          "total_ms": 447.7062141522765,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.155364036560059,
+          "peak_gib": 11.154637813568115,
+          "reserved_peak_gib": 12.712890625
+        },
+        {
+          "iteration": 2,
+          "forward_ms": 225.6036950275302,
+          "backward_ms": 203.11302412301302,
+          "total_ms": 428.7167191505432,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.154902935028076,
+          "peak_gib": 11.154637813568115,
+          "reserved_peak_gib": 11.705078125
+        }
+      ]
+    },
+    {
+      "rank": 5,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 229.35833223164082,
+          "backward_ms": 218.46791170537472,
+          "total_ms": 447.82624393701553,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.161458015441895,
+          "peak_gib": 11.162400245666504,
+          "reserved_peak_gib": 12.703125
+        },
+        {
+          "iteration": 2,
+          "forward_ms": 225.95480643212795,
+          "backward_ms": 202.79820263385773,
+          "total_ms": 428.7530090659857,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.161405086517334,
+          "peak_gib": 11.162400245666504,
+          "reserved_peak_gib": 11.701171875
+        }
+      ]
+    },
+    {
+      "rank": 6,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 229.499202221632,
+          "backward_ms": 218.44615135341883,
+          "total_ms": 447.94535357505083,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.202651023864746,
+          "peak_gib": 11.20516586303711,
+          "reserved_peak_gib": 13.24609375
+        },
+        {
+          "iteration": 2,
+          "forward_ms": 225.81349592655897,
+          "backward_ms": 202.85393297672272,
+          "total_ms": 428.6674289032817,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.202041149139404,
+          "peak_gib": 11.20516586303711,
+          "reserved_peak_gib": 13.755859375
+        }
+      ]
+    },
+    {
+      "rank": 7,
+      "samples": [
+        {
+          "iteration": 1,
+          "forward_ms": 229.666362516582,
+          "backward_ms": 218.48057210445404,
+          "total_ms": 448.14693462103605,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.156825065612793,
+          "peak_gib": 11.151998043060303,
+          "reserved_peak_gib": 12.701171875
+        },
+        {
+          "iteration": 2,
+          "forward_ms": 225.3616051748395,
+          "backward_ms": 203.01028341054916,
+          "total_ms": 428.37188858538866,
+          "initial_gib": 1.0649447441101074,
+          "forward_peak_gib": 10.155937194824219,
+          "peak_gib": 11.151998043060303,
+          "reserved_peak_gib": 11.6953125
+        }
+      ]
+    }
+  ]
+}
