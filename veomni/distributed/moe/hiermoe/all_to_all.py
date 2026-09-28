@@ -1198,6 +1198,15 @@ def _hierarchical3d_sizes(ep_size: int, selected_dim: int) -> tuple[int, int] | 
     return intra_size, mid_size
 
 
+def _unique_ordinals_by_token(hits: torch.Tensor) -> torch.Tensor:
+    """Number each destination's unique tokens in their original row order."""
+    if hits.device.type == "npu" and is_torch_npu_available():
+        # A contiguous last-axis scan avoids the slow tall, narrow NPU cumsum.
+        # Integer prefix sums are exact; the transposed result is read by index.
+        return torch.cumsum(hits.t().contiguous(), dim=1, dtype=torch.int32).t() - 1
+    return torch.cumsum(hits, dim=0, dtype=torch.int32) - 1
+
+
 def _build_stage1_payload(
     hidden_states: torch.Tensor,
     selected_experts: torch.Tensor,
@@ -1250,7 +1259,7 @@ def _build_stage1_payload(
 
     unique_node_tokens = token_node_hits.t().nonzero(as_tuple=False)
     unique_tokens = unique_node_tokens[:, 1].to(torch.long)
-    node_unique_ordinal_by_token = torch.cumsum(token_node_hits, dim=0, dtype=torch.int32) - 1
+    node_unique_ordinal_by_token = _unique_ordinals_by_token(token_node_hits)
     node_unique_ordinal = node_unique_ordinal_by_token[flat_tokens, flat_nodes]
 
     sort_indices = _sort_key_indices(hidden_states, flat_nodes)
@@ -1307,7 +1316,7 @@ def _build_stage2_payload(
     stage1_rank_hits = torch.zeros((stage1_hidden.shape[0], intra_size), dtype=torch.bool, device=device)
     stage1_rank_hits[stage1_unique_indices, target_local_ranks] = True
     unique_counts_by_local = stage1_rank_hits.sum(dim=0, dtype=torch.int32)
-    stage1_rank_unique_ordinal_by_token = torch.cumsum(stage1_rank_hits, dim=0, dtype=torch.int32) - 1
+    stage1_rank_unique_ordinal_by_token = _unique_ordinals_by_token(stage1_rank_hits)
     rank_unique_ordinal = stage1_rank_unique_ordinal_by_token[stage1_unique_indices, target_local_ranks]
 
     rank_major_unique_tokens = torch.nonzero(stage1_rank_hits.t(), as_tuple=False)
@@ -1387,7 +1396,7 @@ def _build_stage1_3d_payload(
 
     unique_mid_tokens = token_mid_hits.t().nonzero(as_tuple=False)
     unique_tokens = unique_mid_tokens[:, 1].to(torch.long)
-    mid_unique_ordinal_by_token = torch.cumsum(token_mid_hits, dim=0, dtype=torch.int32) - 1
+    mid_unique_ordinal_by_token = _unique_ordinals_by_token(token_mid_hits)
     mid_unique_ordinal = mid_unique_ordinal_by_token[flat_tokens, flat_mid_groups]
 
     target_rank_in_mid = target_ranks.remainder(mid_size)
@@ -1445,7 +1454,7 @@ def _build_stage2_3d_payload(
     stage1_node_hits = torch.zeros((stage1_hidden.shape[0], nodes_per_mid), dtype=torch.bool, device=device)
     stage1_node_hits[stage1_unique_indices, target_nodes] = True
     unique_counts_by_node = stage1_node_hits.sum(dim=0, dtype=torch.int32)
-    stage1_node_unique_ordinal_by_token = torch.cumsum(stage1_node_hits, dim=0, dtype=torch.int32) - 1
+    stage1_node_unique_ordinal_by_token = _unique_ordinals_by_token(stage1_node_hits)
     node_unique_ordinal = stage1_node_unique_ordinal_by_token[stage1_unique_indices, target_nodes]
 
     node_major_unique_tokens = torch.nonzero(stage1_node_hits.t(), as_tuple=False)
@@ -1508,7 +1517,7 @@ def _build_stage3_3d_payload(
     stage2_rank_hits = torch.zeros((stage2_hidden.shape[0], intra_size), dtype=torch.bool, device=device)
     stage2_rank_hits[stage2_unique_indices, target_local_ranks] = True
     unique_counts_by_local = stage2_rank_hits.sum(dim=0, dtype=torch.int32)
-    stage2_rank_unique_ordinal_by_token = torch.cumsum(stage2_rank_hits, dim=0, dtype=torch.int32) - 1
+    stage2_rank_unique_ordinal_by_token = _unique_ordinals_by_token(stage2_rank_hits)
     rank_unique_ordinal = stage2_rank_unique_ordinal_by_token[stage2_unique_indices, target_local_ranks]
 
     rank_major_unique_tokens = torch.nonzero(stage2_rank_hits.t(), as_tuple=False)

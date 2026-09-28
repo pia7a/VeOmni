@@ -277,6 +277,824 @@
           "w2_grad": "4ec9d99f79c0f758139f8c5b7a31d64aad812b3292792d04395b5a05a77f846a"
         }
       }
+    },
+    "op-final": {
+      "config": {
+        "mode": "hierarchical",
+        "tokens": 32768,
+        "hidden": 4096,
+        "intermediate": 1536,
+        "experts": 128,
+        "top_k": 8,
+        "warmup": 3,
+        "iterations": 10,
+        "output": "/experiment/op-final.json",
+        "save_tensors": null,
+        "hash_tensors": true,
+        "save_output_rank": null,
+        "memory_fraction": 1.0,
+        "diagnose": false
+      },
+      "max_rank_samples": {
+        "forward_ms": [
+          215.22637084126472,
+          213.40293809771538,
+          212.81210705637932,
+          211.27939317375422,
+          213.7698484584689,
+          211.33945416659117,
+          211.67088393121958,
+          210.58602258563042,
+          211.77104488015175,
+          210.67910362035036
+        ],
+        "backward_ms": [
+          206.14035334438086,
+          199.71373211592436,
+          199.60946217179298,
+          198.1331091374159,
+          198.21782875806093,
+          197.8912390768528,
+          197.9810083284974,
+          198.4333796426654,
+          198.5454298555851,
+          198.61191976815462
+        ],
+        "total_ms": [
+          421.16731498390436,
+          413.00053894519806,
+          412.4131491407752,
+          409.33524165302515,
+          411.94194834679365,
+          409.1537417843938,
+          409.6116330474615,
+          408.929992467165,
+          410.24204436689615,
+          409.2521322891116
+        ],
+        "peak_gib": [
+          11.20421028137207,
+          11.20421028137207,
+          11.20421028137207,
+          11.20421028137207,
+          11.20421028137207,
+          11.20421028137207,
+          11.20421028137207,
+          11.20421028137207,
+          11.20421028137207,
+          11.20421028137207
+        ],
+        "reserved_peak_gib": [
+          15.255859375,
+          15.255859375,
+          15.255859375,
+          15.255859375,
+          15.255859375,
+          15.255859375,
+          15.255859375,
+          15.255859375,
+          15.255859375,
+          15.255859375
+        ]
+      },
+      "sha256": {
+        "0": {
+          "output": "6d975b9647f16b50e4327790df3be0bcaf2a874873c2cccf78c5dc18e28faac6",
+          "input_grad": "4fd5f9f4a8c26e5c8063b6857af6b25a7c4c1bd79d6f172ff9fc9102e0713ddf",
+          "routing_grad": "bd644b47a369dbc4656555b373917ec9d8fec2a89ab98f7310521c41ca2eef2e",
+          "w1_grad": "5ea37784c4ba4d246b7de041b7e4d4e908c1a84752fe048a935bfa303bef4b45",
+          "w2_grad": "eba4f6befce0566873fc35e088159ce5ab28f61ee66fa9067efd0b6415524f53"
+        },
+        "1": {
+          "output": "b0399065f6163ee8e12ad3cc63d97b78af14b7804c5789f12f3330a4c8d53a13",
+          "input_grad": "95e23f765508c7c110769585a8e357381d56c889ac2210903c5beb4116d0c05c",
+          "routing_grad": "c9e43c3537af11d5c5fa265d3f10d59e9cc34c14cfefa818de8ed1991f841878",
+          "w1_grad": "25a7a0c3d042e3693fb2e6b3ee884185bf4cdbc8d5fa40e03f38ebf2f943e390",
+          "w2_grad": "363c8e97f98c0a3535028d53b01c42998bc671a748cf53e2ffc5e61761ba0e33"
+        },
+        "2": {
+          "output": "eeb27775eb500b07f010eadfc1d1f4f1520eb77bfb1a51ddf3d06162f1fe39b6",
+          "input_grad": "4ac0dec8f1dce31d81d73cfbb262854707aca3b2d2491be35accc942aab2d05c",
+          "routing_grad": "c26024e9069f34e2e47eb0c29bae15f2e67ad96796dd47ef84d6aa3e2a6de34c",
+          "w1_grad": "d6b6f7ef5744ce3a72571d8ee4dfd62dfdeb9616374a4ac2696825f822057d39",
+          "w2_grad": "66a9dc58e2d335db2b61e76be9340141c70d8d82dee2310ed3db8bf089d6a5ac"
+        },
+        "3": {
+          "output": "3a343a49f9b52c8a83ea81326d4ab3efd26ba9a19e2fa77f004a6d2de9eda9f8",
+          "input_grad": "3cc6f34391ec9ccb299efe6814cdaae470ab721d7db2855292fbf1d1a21a7290",
+          "routing_grad": "8a9b23d0a9b68278917bc15e7dc2fd57201369190b6cb9ad9a386c0856ac7543",
+          "w1_grad": "7ceec20c7045844ac2591f9fa51f7cc498558a503fd2c59737ea458088874dac",
+          "w2_grad": "f01262893174376a08dd7235321114f2e04e1f3d81925a2e62a742ce87560dae"
+        },
+        "4": {
+          "output": "8e3649de822892f04a65b23284245d02fde0d8c85c69bbed9a080d9a5ca97d1c",
+          "input_grad": "b6d619494ddd57f784d9ef736548f789bfade9bb77bd7446db6101b8c9b94454",
+          "routing_grad": "a6d9ffdc15ef32a0c4a2814647130554ed0446e5ef4a2efee72c938f974c16ce",
+          "w1_grad": "4060a5c7c90d2139ea77be8605e2062e8492240ddfa1786a41ce5cf10a867557",
+          "w2_grad": "afae65d192644e4515d14cae25e3bd7b74ba6f5b9a9bc42f76c7e5fcbe74c307"
+        },
+        "5": {
+          "output": "452862544eab625b02c738b7acba6942289018d3cb6654b6b77c91ad11a85577",
+          "input_grad": "4e21d39bdba744e8ff1611b7a22008c90a46b9d7c51d6075449f88d358fb260d",
+          "routing_grad": "5fc91180e9f9e6c6c31f3253b44cd4ff0f49756e6d32dede7f2f011e388fc48a",
+          "w1_grad": "d6f7a8c25662b95c608612cc4190d8b21afa498b74b3667e3c2bc8799239f047",
+          "w2_grad": "57db79416d4e97a8ae5e953eb8545b806e3e82b69e9a94343f1d91c16d50ca35"
+        },
+        "6": {
+          "output": "23de35d98f843ea5186d4ab6d7625c4ceb8622f4073bcaaee0c7f5e60baa8dca",
+          "input_grad": "47de58d647e10fe81d30cc44be915211ec93639d378d4e5ee74de5c23db29b56",
+          "routing_grad": "c3105385e4587765e6a3ba3939cd664f389e56ef42355b760a3ecf20abd10224",
+          "w1_grad": "56b7bb5c7434cd1f398049d503cf3a91502a64d68ca717fda9fcc94b313c5d3b",
+          "w2_grad": "24e922a85aaaf4c5d64a100310c4f3c6c07c83094e70ac5b8d6af56790223d7b"
+        },
+        "7": {
+          "output": "ebab9a145510788846e0a869c11f2ce7124a8a6f74c8adaa32d069fdb1dadcf5",
+          "input_grad": "b6a3d93feeafac9159056f5f5b5c9f9172d05f58524be8ebc0d06b39a9d0dd42",
+          "routing_grad": "e89d691251b014c56b474a5f06cab46aedcbced55e015ca64ebf67636e187838",
+          "w1_grad": "ad3dde578acd1941aedc3f16209921e8386f76a761a414383bd4404081bcc541",
+          "w2_grad": "4ec9d99f79c0f758139f8c5b7a31d64aad812b3292792d04395b5a05a77f846a"
+        }
+      }
+    }
+  },
+  "rank0_traces": {
+    "original": {
+      "source": "/tmp/placemoe-longseq/op-trace/liteserver-c009-5-1_18_20260928090420998_ascend_pt/ASCEND_PROFILER_OUTPUT",
+      "kernels": [
+        {
+          "OP Type": "GroupedMatmul",
+          "Core Type": "MIX_AIC",
+          "Count": "6",
+          "Total Time(us)": "94115.14"
+        },
+        {
+          "OP Type": "InplaceScatterAdd",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "32",
+          "Total Time(us)": "19138.083"
+        },
+        {
+          "OP Type": "GatherV3",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "33",
+          "Total Time(us)": "16631.773"
+        },
+        {
+          "OP Type": "Cast",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "85",
+          "Total Time(us)": "14905.372"
+        },
+        {
+          "OP Type": "Mul",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "41",
+          "Total Time(us)": "13858.46"
+        },
+        {
+          "OP Type": "InplaceIndexAddWithSorted",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "6",
+          "Total Time(us)": "12445.769"
+        },
+        {
+          "OP Type": "Slice",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "50",
+          "Total Time(us)": "11072.861"
+        },
+        {
+          "OP Type": "ScatterElements",
+          "Core Type": "AI_CPU",
+          "Count": "3",
+          "Total Time(us)": "5194.524"
+        },
+        {
+          "OP Type": "Cumsum",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "2",
+          "Total Time(us)": "4869.177"
+        },
+        {
+          "OP Type": "Bincount",
+          "Core Type": "AI_CPU",
+          "Count": "2",
+          "Total Time(us)": "3870.978"
+        },
+        {
+          "OP Type": "ZerosLike",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "23",
+          "Total Time(us)": "3777.077"
+        },
+        {
+          "OP Type": "SwiGluGrad",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "1",
+          "Total Time(us)": "3666.513"
+        },
+        {
+          "OP Type": "ViewCopy",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "14",
+          "Total Time(us)": "3306.385"
+        },
+        {
+          "OP Type": "MoeTokenPermute",
+          "Core Type": "MIX_AIV",
+          "Count": "3",
+          "Total Time(us)": "2325.927"
+        },
+        {
+          "OP Type": "SwiGlu",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "1",
+          "Total Time(us)": "2213.005"
+        },
+        {
+          "OP Type": "ReduceSum",
+          "Core Type": "MIX_AIV",
+          "Count": "18",
+          "Total Time(us)": "2173.139"
+        },
+        {
+          "OP Type": "Sort",
+          "Core Type": "MIX_AIV",
+          "Count": "6",
+          "Total Time(us)": "1943.639"
+        },
+        {
+          "OP Type": "TensorMove",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "16",
+          "Total Time(us)": "1916.638"
+        },
+        {
+          "OP Type": "Index",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "2",
+          "Total Time(us)": "1885.919"
+        },
+        {
+          "OP Type": "Transpose",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "6",
+          "Total Time(us)": "1489.231"
+        },
+        {
+          "OP Type": "NonZero",
+          "Core Type": "MIX_AIV",
+          "Count": "2",
+          "Total Time(us)": "1447.409"
+        },
+        {
+          "OP Type": "IndexPutV2",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "1",
+          "Total Time(us)": "1371.208"
+        },
+        {
+          "OP Type": "FloorDiv",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "5",
+          "Total Time(us)": "469.009"
+        },
+        {
+          "OP Type": "Range",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "4",
+          "Total Time(us)": "161.324"
+        },
+        {
+          "OP Type": "Cumsum",
+          "Core Type": "AI_CPU",
+          "Count": "2",
+          "Total Time(us)": "130.222"
+        },
+        {
+          "OP Type": "FloorMod",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "1",
+          "Total Time(us)": "104.162"
+        },
+        {
+          "OP Type": "ReduceMax",
+          "Core Type": "MIX_AIV",
+          "Count": "2",
+          "Total Time(us)": "102.542"
+        },
+        {
+          "OP Type": "ReduceMin",
+          "Core Type": "MIX_AIV",
+          "Count": "2",
+          "Total Time(us)": "101.542"
+        },
+        {
+          "OP Type": "Fill",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "9",
+          "Total Time(us)": "101.481"
+        },
+        {
+          "OP Type": "Add",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "4",
+          "Total Time(us)": "75.601"
+        },
+        {
+          "OP Type": "Sub",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "6",
+          "Total Time(us)": "74.922"
+        },
+        {
+          "OP Type": "BroadcastTo",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "3",
+          "Total Time(us)": "66.121"
+        },
+        {
+          "OP Type": "MemSet",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "4",
+          "Total Time(us)": "52.801"
+        },
+        {
+          "OP Type": "ConcatD",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "5",
+          "Total Time(us)": "50.202"
+        },
+        {
+          "OP Type": "ScatterElementsV2",
+          "Core Type": "MIX_AIV",
+          "Count": "1",
+          "Total Time(us)": "45.381"
+        },
+        {
+          "OP Type": "MoeComputeExpertTokens",
+          "Core Type": "MIX_AIC",
+          "Count": "1",
+          "Total Time(us)": "32.101"
+        },
+        {
+          "OP Type": "Pack",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "3",
+          "Total Time(us)": "20.38"
+        }
+      ],
+      "weighted_backward_device_us": [
+        18269.585000000006
+      ]
+    },
+    "direct_output": {
+      "source": "/tmp/placemoe-longseq/op-trace/liteserver-c009-5-1_2985_20260928091301967_ascend_pt/ASCEND_PROFILER_OUTPUT",
+      "kernels": [
+        {
+          "OP Type": "GroupedMatmul",
+          "Core Type": "MIX_AIC",
+          "Count": "6",
+          "Total Time(us)": "94511.827"
+        },
+        {
+          "OP Type": "InplaceScatterAdd",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "32",
+          "Total Time(us)": "19131.265"
+        },
+        {
+          "OP Type": "GatherV3",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "33",
+          "Total Time(us)": "15307.245"
+        },
+        {
+          "OP Type": "Cast",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "85",
+          "Total Time(us)": "14866.435"
+        },
+        {
+          "OP Type": "Mul",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "41",
+          "Total Time(us)": "13983.599"
+        },
+        {
+          "OP Type": "InplaceIndexAddWithSorted",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "6",
+          "Total Time(us)": "12442.248"
+        },
+        {
+          "OP Type": "Slice",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "50",
+          "Total Time(us)": "11075.963"
+        },
+        {
+          "OP Type": "ScatterElements",
+          "Core Type": "AI_CPU",
+          "Count": "3",
+          "Total Time(us)": "5117.981"
+        },
+        {
+          "OP Type": "Cumsum",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "2",
+          "Total Time(us)": "4866.897"
+        },
+        {
+          "OP Type": "Bincount",
+          "Core Type": "AI_CPU",
+          "Count": "2",
+          "Total Time(us)": "4083.081"
+        },
+        {
+          "OP Type": "ZerosLike",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "23",
+          "Total Time(us)": "3764.457"
+        },
+        {
+          "OP Type": "SwiGluGrad",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "1",
+          "Total Time(us)": "3639.873"
+        },
+        {
+          "OP Type": "ViewCopy",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "14",
+          "Total Time(us)": "3301.385"
+        },
+        {
+          "OP Type": "MoeTokenPermute",
+          "Core Type": "MIX_AIV",
+          "Count": "3",
+          "Total Time(us)": "2327.386"
+        },
+        {
+          "OP Type": "SwiGlu",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "1",
+          "Total Time(us)": "2228.165"
+        },
+        {
+          "OP Type": "ReduceSum",
+          "Core Type": "MIX_AIV",
+          "Count": "18",
+          "Total Time(us)": "2110.424"
+        },
+        {
+          "OP Type": "Sort",
+          "Core Type": "MIX_AIV",
+          "Count": "6",
+          "Total Time(us)": "1936.04"
+        },
+        {
+          "OP Type": "Index",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "2",
+          "Total Time(us)": "1866.256"
+        },
+        {
+          "OP Type": "Transpose",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "6",
+          "Total Time(us)": "1491.652"
+        },
+        {
+          "OP Type": "NonZero",
+          "Core Type": "MIX_AIV",
+          "Count": "2",
+          "Total Time(us)": "1445.269"
+        },
+        {
+          "OP Type": "IndexPutV2",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "1",
+          "Total Time(us)": "1380.068"
+        },
+        {
+          "OP Type": "FloorDiv",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "5",
+          "Total Time(us)": "466.309"
+        },
+        {
+          "OP Type": "Range",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "4",
+          "Total Time(us)": "154.602"
+        },
+        {
+          "OP Type": "Cumsum",
+          "Core Type": "AI_CPU",
+          "Count": "2",
+          "Total Time(us)": "111.302"
+        },
+        {
+          "OP Type": "Fill",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "9",
+          "Total Time(us)": "106.363"
+        },
+        {
+          "OP Type": "ReduceMax",
+          "Core Type": "MIX_AIV",
+          "Count": "2",
+          "Total Time(us)": "103.602"
+        },
+        {
+          "OP Type": "ReduceMin",
+          "Core Type": "MIX_AIV",
+          "Count": "2",
+          "Total Time(us)": "102.722"
+        },
+        {
+          "OP Type": "FloorMod",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "1",
+          "Total Time(us)": "102.422"
+        },
+        {
+          "OP Type": "Sub",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "6",
+          "Total Time(us)": "80.242"
+        },
+        {
+          "OP Type": "Add",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "4",
+          "Total Time(us)": "78.44"
+        },
+        {
+          "OP Type": "BroadcastTo",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "3",
+          "Total Time(us)": "66.301"
+        },
+        {
+          "OP Type": "MemSet",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "4",
+          "Total Time(us)": "49.5"
+        },
+        {
+          "OP Type": "ScatterElementsV2",
+          "Core Type": "MIX_AIV",
+          "Count": "1",
+          "Total Time(us)": "46.101"
+        },
+        {
+          "OP Type": "ConcatD",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "5",
+          "Total Time(us)": "45.38"
+        },
+        {
+          "OP Type": "MoeComputeExpertTokens",
+          "Core Type": "MIX_AIC",
+          "Count": "1",
+          "Total Time(us)": "34.521"
+        },
+        {
+          "OP Type": "Pack",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "3",
+          "Total Time(us)": "21.701"
+        }
+      ],
+      "weighted_backward_device_us": [
+        14970.360000000006
+      ]
+    },
+    "final": {
+      "source": "/tmp/placemoe-longseq/op-trace/liteserver-c009-5-1_5065_20260928091743304_ascend_pt/ASCEND_PROFILER_OUTPUT",
+      "kernels": [
+        {
+          "OP Type": "GroupedMatmul",
+          "Core Type": "MIX_AIC",
+          "Count": "6",
+          "Total Time(us)": "94297.505"
+        },
+        {
+          "OP Type": "InplaceScatterAdd",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "32",
+          "Total Time(us)": "19158.422"
+        },
+        {
+          "OP Type": "GatherV3",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "33",
+          "Total Time(us)": "15296.505"
+        },
+        {
+          "OP Type": "Cast",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "85",
+          "Total Time(us)": "14883.818"
+        },
+        {
+          "OP Type": "Mul",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "41",
+          "Total Time(us)": "14023.924"
+        },
+        {
+          "OP Type": "InplaceIndexAddWithSorted",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "6",
+          "Total Time(us)": "12424.068"
+        },
+        {
+          "OP Type": "Slice",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "50",
+          "Total Time(us)": "11069.519"
+        },
+        {
+          "OP Type": "ScatterElements",
+          "Core Type": "AI_CPU",
+          "Count": "3",
+          "Total Time(us)": "5068.941"
+        },
+        {
+          "OP Type": "ZerosLike",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "23",
+          "Total Time(us)": "3765.417"
+        },
+        {
+          "OP Type": "SwiGluGrad",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "1",
+          "Total Time(us)": "3608.252"
+        },
+        {
+          "OP Type": "Bincount",
+          "Core Type": "AI_CPU",
+          "Count": "2",
+          "Total Time(us)": "3425.308"
+        },
+        {
+          "OP Type": "ViewCopy",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "14",
+          "Total Time(us)": "3316.445"
+        },
+        {
+          "OP Type": "MoeTokenPermute",
+          "Core Type": "MIX_AIV",
+          "Count": "3",
+          "Total Time(us)": "2332.867"
+        },
+        {
+          "OP Type": "SwiGlu",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "1",
+          "Total Time(us)": "2227.484"
+        },
+        {
+          "OP Type": "ReduceSum",
+          "Core Type": "MIX_AIV",
+          "Count": "18",
+          "Total Time(us)": "2163.883"
+        },
+        {
+          "OP Type": "Sort",
+          "Core Type": "MIX_AIV",
+          "Count": "6",
+          "Total Time(us)": "1937.299"
+        },
+        {
+          "OP Type": "Index",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "2",
+          "Total Time(us)": "1858.157"
+        },
+        {
+          "OP Type": "Transpose",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "10",
+          "Total Time(us)": "1561.85"
+        },
+        {
+          "OP Type": "NonZero",
+          "Core Type": "MIX_AIV",
+          "Count": "2",
+          "Total Time(us)": "1443.569"
+        },
+        {
+          "OP Type": "IndexPutV2",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "1",
+          "Total Time(us)": "1351.808"
+        },
+        {
+          "OP Type": "FloorDiv",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "5",
+          "Total Time(us)": "467.31"
+        },
+        {
+          "OP Type": "Range",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "4",
+          "Total Time(us)": "164.243"
+        },
+        {
+          "OP Type": "Cumsum",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "2",
+          "Total Time(us)": "163.343"
+        },
+        {
+          "OP Type": "Cumsum",
+          "Core Type": "AI_CPU",
+          "Count": "2",
+          "Total Time(us)": "148.623"
+        },
+        {
+          "OP Type": "FloorMod",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "1",
+          "Total Time(us)": "108.502"
+        },
+        {
+          "OP Type": "ReduceMax",
+          "Core Type": "MIX_AIV",
+          "Count": "2",
+          "Total Time(us)": "103.502"
+        },
+        {
+          "OP Type": "Fill",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "9",
+          "Total Time(us)": "103.402"
+        },
+        {
+          "OP Type": "ReduceMin",
+          "Core Type": "MIX_AIV",
+          "Count": "2",
+          "Total Time(us)": "103.362"
+        },
+        {
+          "OP Type": "Add",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "4",
+          "Total Time(us)": "83.961"
+        },
+        {
+          "OP Type": "Sub",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "6",
+          "Total Time(us)": "69.92"
+        },
+        {
+          "OP Type": "BroadcastTo",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "3",
+          "Total Time(us)": "67.061"
+        },
+        {
+          "OP Type": "MemSet",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "4",
+          "Total Time(us)": "61.001"
+        },
+        {
+          "OP Type": "ConcatD",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "5",
+          "Total Time(us)": "48.482"
+        },
+        {
+          "OP Type": "ScatterElementsV2",
+          "Core Type": "MIX_AIV",
+          "Count": "1",
+          "Total Time(us)": "46.421"
+        },
+        {
+          "OP Type": "MoeComputeExpertTokens",
+          "Core Type": "MIX_AIC",
+          "Count": "1",
+          "Total Time(us)": "34.081"
+        },
+        {
+          "OP Type": "Pack",
+          "Core Type": "AI_VECTOR_CORE",
+          "Count": "3",
+          "Total Time(us)": "22.681"
+        }
+      ],
+      "weighted_backward_device_us": [
+        15033.381
+      ]
     }
   }
 }
