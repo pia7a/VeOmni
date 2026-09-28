@@ -97,3 +97,22 @@ def test_weighted_combine_preserves_mixed_dtype_rounding():
     torch.testing.assert_close(actual, reference, rtol=0, atol=0)
     for gradient, ref_gradient in zip(gradients, expected):
         torch.testing.assert_close(gradient, ref_gradient, rtol=0, atol=0)
+
+
+def test_weighted_combine_preserves_second_derivatives():
+    generator = torch.Generator().manual_seed(930)
+    source = torch.randn(37, 19, generator=generator, requires_grad=True)
+    weights = torch.randn(37, 1, generator=generator, requires_grad=True)
+    upstream = torch.randn(11, 19, generator=generator, requires_grad=True)
+    index = torch.arange(37) % 9
+    actual = _NpuWeightedIndexAddDim0CastOutput.apply(source, weights, index, 11)
+    reference = _NpuIndexAddDim0CastOutput.apply(source * weights, index, 11)
+    first = torch.autograd.grad(actual, (source, weights), upstream, create_graph=True)
+    ref_first = torch.autograd.grad(reference, (source, weights), upstream, create_graph=True)
+    coefficients = [torch.randn(g.shape, generator=generator) for g in first]
+    second = torch.autograd.grad(sum((g * c).sum() for g, c in zip(first, coefficients)), (source, weights, upstream))
+    ref_second = torch.autograd.grad(
+        sum((g * c).sum() for g, c in zip(ref_first, coefficients)), (source, weights, upstream)
+    )
+    for result, expected in zip((*first, *second), (*ref_first, *ref_second)):
+        torch.testing.assert_close(result, expected, rtol=0, atol=0)

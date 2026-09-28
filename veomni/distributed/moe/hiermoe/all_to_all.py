@@ -952,7 +952,13 @@ class _NpuWeightedIndexAddDim0CastOutput(torch.autograd.Function):
             if grad_weights is not None:
                 grad_weights[start:end].copy_((gathered * source[start:end]).sum(dim=1, keepdim=True))
             if grad_source is not None:
-                grad_source[start:end].copy_(gathered * weights[start:end].to(source.dtype))
+                chunk_weights = weights[start:end].to(source.dtype)
+                if torch.is_grad_enabled():
+                    # out= operators do not build the graph needed by higher-order gradients.
+                    grad_source[start:end].copy_(gathered * chunk_weights)
+                else:
+                    # Write directly into the final buffer instead of copying a full chunk.
+                    torch.mul(gathered, chunk_weights, out=grad_source[start:end])
         return grad_source, grad_weights, None, None
 
 
