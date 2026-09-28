@@ -784,18 +784,33 @@ def _local_expert_sort_indices(
     *,
     build_unsort: bool = True,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    tokens_per_local_expert = torch.bincount(local_expert_ids, minlength=num_local_experts)
     if local_expert_ids.numel() == 0:
+        tokens_per_local_expert = torch.zeros((num_local_experts,), dtype=torch.long, device=device)
         sort_indices = torch.empty((0,), dtype=torch.long, device=device)
         unsort_indices = torch.empty((0,), dtype=torch.long, device=device)
         return sort_indices, unsort_indices, tokens_per_local_expert
 
-    sort_chunks = []
-    for expert_idx in range(num_local_experts):
-        indices = torch.nonzero(local_expert_ids == expert_idx, as_tuple=False).flatten()
-        if indices.numel() > 0:
-            sort_chunks.append(indices)
-    sort_indices = torch.cat(sort_chunks, dim=0) if sort_chunks else torch.empty((0,), dtype=torch.long, device=device)
+    if device.type == "npu" and is_torch_npu_available():
+        # Token permute preserves row order within each expert, without the
+        # repeated scans and device synchronizations of per-expert nonzero.
+        import torch_npu
+
+        sort_indices = _sort_key_indices(local_expert_ids, local_expert_ids)
+        sorted_experts = local_expert_ids.index_select(0, sort_indices).to(torch.int32)
+        # The fixed-size cumulative counts avoid bincount's dynamic output
+        # sizing and host synchronization. Keep the public counts in int64.
+        expert_ends = torch_npu.npu_moe_compute_expert_tokens(sorted_experts, num_local_experts)
+        tokens_per_local_expert = torch.diff(expert_ends, prepend=expert_ends.new_zeros(1)).to(torch.long)
+    else:
+        tokens_per_local_expert = torch.bincount(local_expert_ids, minlength=num_local_experts)
+        sort_chunks = []
+        for expert_idx in range(num_local_experts):
+            indices = torch.nonzero(local_expert_ids == expert_idx, as_tuple=False).flatten()
+            if indices.numel() > 0:
+                sort_chunks.append(indices)
+        sort_indices = (
+            torch.cat(sort_chunks, dim=0) if sort_chunks else torch.empty((0,), dtype=torch.long, device=device)
+        )
     if not build_unsort:
         return sort_indices, torch.empty((0,), dtype=torch.long, device=device), tokens_per_local_expert
     unsort_indices = torch.empty_like(sort_indices)
